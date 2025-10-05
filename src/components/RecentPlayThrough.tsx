@@ -3,15 +3,22 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import ImagePopup from "@/components/ImagePopup";
 
 interface Game {
   id: string;
   name: string;
+  imageUrl?: string;
   createdAt: Date;
 }
 
 export default function RecentPlayThrough() {
   const [games, setGames] = useState<Game[]>([]);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+
 
   useEffect(() => {
     const fetchGames = async () => {
@@ -19,6 +26,7 @@ export default function RecentPlayThrough() {
       const gamesData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
+        imageUrl: doc.data().imageUrl,
         createdAt: doc.data().createdAt.toDate()
       })) as Game[];
       setGames(gamesData);
@@ -62,8 +70,17 @@ export default function RecentPlayThrough() {
               transition={{ duration: 0.6, delay: index * 0.2 }}
               viewport={{ once: true }}
               whileHover={{ y: -15, rotateY: 5 }}
+              onClick={() => {
+                setSelectedGame(game);
+                setIsPopupOpen(true);
+              }}
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
+
               className="group relative aspect-[4/5] rounded-3xl overflow-hidden cursor-pointer"
             >
+
+
               {/* Game Image Placeholder */}
               <div className="absolute inset-0">
                 <motion.div
@@ -99,15 +116,20 @@ export default function RecentPlayThrough() {
 
               {/* Game Title - appears on hover */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileHover={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
+                animate={{
+                  opacity: hoveredIndex === index ? 1 : 0,
+                  y: hoveredIndex === index ? 0 : 20
+                }}
+                transition={{ duration: 0.4, delay: hoveredIndex === index ? 0.1 : 0 }}
+
                 className="absolute bottom-6 left-6 right-6 z-20"
               >
                 <h3 className="text-2xl md:text-3xl font-bold text-white drop-shadow-2xl">
                   {game.name}
                 </h3>
               </motion.div>
+
+
 
               {/* Glowing Border Effect */}
               <motion.div
@@ -244,6 +266,18 @@ export default function RecentPlayThrough() {
           delay: 1
         }}
         className="absolute top-1/2 right-20 w-6 h-6 bg-gradient-to-r from-green-500/40 to-blue-500/40 rounded-lg blur-sm opacity-50"
+      />
+
+      <ImagePopup
+        isOpen={isPopupOpen}
+        onClose={() => setIsPopupOpen(false)}
+        imageUrl={selectedGame?.imageUrl || '/placeholder-image.jpg'}
+        name={selectedGame?.name || ''}
+        resolutions={[
+          { label: 'HD (1920x1080)', url: '/downloads/hd-image.jpg' },
+          { label: '4K (3840x2160)', url: '/downloads/4k-image.jpg' },
+          { label: 'Original', url: '/downloads/original-image.jpg' }
+        ]}
       />
     </section>
   );
