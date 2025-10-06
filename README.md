@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎮 IMAGI - Game Gallery Platform
 
-## Getting Started
+A modern, interactive web platform for gamers to upload, share, and vote on gaming screenshots with advanced filtering, admin management, and beautiful UI animations.
 
-First, run the development server:
+![IMAGI Preview](https://via.placeholder.com/800x400/1a1a2a/ffffff?text=IMAGI+Game+Gallery)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## ✨ Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 🎯 Core Functionality
+- **Image Upload & Management**: Secure image uploads to Cloudinary with Firebase storage
+- **Advanced Gallery**: Responsive grid layout with infinite scroll and load more functionality
+- **Smart Filtering**: Filter images by game and genre with dynamic dropdowns
+- **Interactive Voting**: Like/dislike system with user authentication and vote tracking
+- **Image Cropping & Download**: Real-time image cropping for different resolutions (Desktop, Mobile, Tablet, Square)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 🎨 User Interface
+- **Modern Design**: Glassmorphism effects with backdrop blur and gradient overlays
+- **Smooth Animations**: Framer Motion powered animations and transitions
+- **Responsive Layout**: Mobile-first design that works on all devices
+- **Dark Theme**: Consistent dark theme optimized for gaming aesthetics
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 🔐 Authentication & Security
+- **Firebase Auth**: Secure user authentication with email/password
+- **Vote Protection**: One vote per user per image with duplicate prevention
+- **Admin Panel**: Comprehensive admin dashboard for content management
 
-## Learn More
+### 📊 Admin Features
+- **Dashboard**: Real-time statistics (total images, likes, users)
+- **Content Management**: Add, edit, delete images with metadata
+- **Configuration**: Dynamic genre and game management
+- **User Management**: View active users and voting patterns
 
-To learn more about Next.js, take a look at the following resources:
+### 🛠️ Technical Features
+- **Real-time Updates**: Live voting and content updates
+- **Image Optimization**: Automatic image compression and format optimization
+- **SEO Friendly**: Server-side rendering with Next.js
+- **Type Safety**: Full TypeScript implementation
+- **Performance**: Optimized loading with lazy loading and caching
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🚀 Tech Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Frontend
+- **Next.js 15** - React framework with App Router
+- **React 19** - UI library
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Utility-first CSS framework
+- **Framer Motion** - Animation library
+- **Lucide React** - Icon library
 
-## Deploy on Vercel
+### Backend & Database
+- **Firebase** - Authentication, Firestore database, hosting
+- **Cloudinary** - Image storage and optimization
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### UI Components
+- **Radix UI** - Accessible component primitives
+- **shadcn/ui** - Beautiful component library
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Development Tools
+- **ESLint** - Code linting
+- **PostCSS** - CSS processing
+- **Next.js API Routes** - Serverless functions

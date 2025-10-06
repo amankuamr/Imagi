@@ -40,7 +40,15 @@ export default function FilterDropdown({ options, selected, onSelect, placeholde
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="absolute top-full mt-2 right-0 w-48 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-xl overflow-hidden z-60"
           >
-            <div className="py-2">
+            <div
+              className="max-h-64 overflow-y-auto py-2"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              <style jsx>{`
+    div::-webkit-scrollbar {
+      display: none;
+    }
+  `}</style>
               {options.map((option) => (
                 <button
                   key={option}

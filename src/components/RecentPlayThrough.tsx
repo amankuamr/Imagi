@@ -21,7 +21,7 @@ export default function RecentPlayThrough() {
 
   useEffect(() => {
     const fetchImages = async () => {
-      const q = query(collection(db, "images"), orderBy("uploadedAt", "desc"), limit(6));
+      const q = query(collection(db, "images"), orderBy("uploadedAt", "desc"), limit(3));
       const querySnapshot = await getDocs(q);
       const imagesData = querySnapshot.docs.map(doc => ({
         id: doc.id,

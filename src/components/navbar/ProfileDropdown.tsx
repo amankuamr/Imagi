@@ -3,9 +3,10 @@ import { useState } from "react";
 import { User, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import type { User as FirebaseUser } from "firebase/auth";
 
 interface ProfileDropdownProps {
-  user: any; // Replace with proper Firebase user type if available
+  user: FirebaseUser | null;
   logout: () => Promise<void>;
 }
 

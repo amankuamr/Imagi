@@ -5,7 +5,7 @@ import { Heart, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FilterDropdown from "./FilterDropdown";
 import ImagePopup from "./ImagePopup";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -30,6 +30,11 @@ interface FirebaseImage {
   dislikedBy?: string[];
 }
 
+interface ConfigData {
+  genres: string[];
+  games: string[];
+}
+
 export default function GalleryGridSection() {
   const [images, setImages] = useState<FirebaseImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,10 +43,12 @@ export default function GalleryGridSection() {
   const [selectedGenre, setSelectedGenre] = useState("All Genres");
   const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
+  const [config, setConfig] = useState<ConfigData>({ genres: [], games: [] });
   const { user } = useAuth();
 
   useEffect(() => {
     fetchImages();
+    fetchConfig();
   }, []);
 
   const fetchImages = async () => {
@@ -56,6 +63,18 @@ export default function GalleryGridSection() {
       console.error('Error fetching images:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchConfig = async () => {
+    try {
+      const docRef = doc(db, 'config', 'settings');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setConfig(docSnap.data() as ConfigData);
+      }
+    } catch (error) {
+      console.error('Error fetching config:', error);
     }
   };
 
@@ -183,13 +202,13 @@ export default function GalleryGridSection() {
 
           <div className="flex gap-4">
             <FilterDropdown
-              options={["All Games", "Cyberpunk 2077", "The Witcher 3", "Elden Ring", "GTA V", "Minecraft"]}
+              options={["All Games", ...config.games]}
               selected={selectedGame}
               onSelect={setSelectedGame}
               placeholder="Select Game"
             />
             <FilterDropdown
-              options={["All Genres", "Action", "RPG", "Adventure", "Strategy", "Simulation"]}
+              options={["All Genres", ...config.genres]}
               selected={selectedGenre}
               onSelect={setSelectedGenre}
               placeholder="Select Genre"
