@@ -4,13 +4,13 @@ import Image from "next/image";
 
 export default function Hero() {
   return (
-    <section className="fixed inset-0 h-screen flex flex-col justify-center items-start text-left px-6 md:px-12 lg:px-20 z-0 overflow-hidden">
+    <section className="relative h-screen flex flex-col justify-center items-start text-left px-6 md:px-12 lg:px-20 overflow-hidden">
       {/* Background Image with Parallax Effect */}
       <motion.div
         initial={{ scale: 1.1 }}
         animate={{ scale: 1 }}
         transition={{ duration: 1.5, ease: "easeOut" }}
-        className="absolute inset-0 z-0"
+        className="fixed inset-0 z-0"
       >
         <Image
           src="/images/hero.jpg"
@@ -27,8 +27,11 @@ export default function Hero() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 0.3 }}
-        className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black/80 z-10"
+        className="fixed inset-0 bg-black/50 z-5"
+
+
       />
+
 
       {/* Animated particles/dots overlay */}
       <motion.div
@@ -149,7 +152,7 @@ export default function Hero() {
           repeat: Infinity,
           ease: "easeInOut"
         }}
-        className="absolute top-20 left-20 w-4 h-4 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-sm z-20 opacity-60"
+        className="absolute top-20 left-20 w-4 h-4 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-sm z-30 opacity-60"
       />
 
       <motion.div
@@ -163,7 +166,7 @@ export default function Hero() {
           ease: "easeInOut",
           delay: 1
         }}
-        className="absolute top-40 right-32 w-6 h-6 bg-gradient-to-r from-pink-400 to-red-400 rounded-full blur-sm z-20 opacity-50"
+        className="absolute top-40 right-32 w-6 h-6 bg-gradient-to-r from-pink-400 to-red-400 rounded-full blur-sm z-30 opacity-50"
       />
 
       <motion.div
@@ -177,7 +180,7 @@ export default function Hero() {
           ease: "easeInOut",
           delay: 2
         }}
-        className="absolute bottom-32 left-32 w-3 h-3 bg-gradient-to-r from-green-400 to-blue-400 rounded-full blur-sm z-20 opacity-70"
+        className="absolute bottom-32 left-32 w-3 h-3 bg-gradient-to-r from-green-400 to-blue-400 rounded-full blur-sm z-30 opacity-70"
       />
     </section>
   );

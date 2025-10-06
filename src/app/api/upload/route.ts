@@ -7,9 +7,11 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const file = formData.get('image') as File;
   const name = formData.get('name') as string;
+  const genre = formData.get('genre') as string;
+  const game = formData.get('game') as string;
 
-  if (!file || !name) {
-    return NextResponse.json({ error: 'Missing file or name' }, { status: 400 });
+  if (!file || !name || !genre || !game) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
   try {
@@ -31,6 +33,8 @@ export async function POST(request: NextRequest) {
     // Save metadata to Firestore
     await addDoc(collection(db, 'images'), {
       title: name,
+      genre: genre,
+      game: game,
       url: result.secure_url,
       public_id: result.public_id,
       uploadedAt: new Date(),
@@ -40,12 +44,9 @@ export async function POST(request: NextRequest) {
       dislikedBy: [],
     });
 
-
-
     return NextResponse.json({ message: 'Uploaded successfully', url: result.secure_url });
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }
-

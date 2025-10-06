@@ -102,7 +102,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="relative bg-black/20 backdrop-blur-xl border-t border-white/10">
+    <footer className="relative bg-black/20 backdrop-blur-xl border-t border-white/10 z-20">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div

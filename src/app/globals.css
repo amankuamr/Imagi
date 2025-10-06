@@ -145,3 +145,7 @@ body[data-radix-scroll-lock] {
   background: none !important;
 }
 
+.custom-blur {
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}

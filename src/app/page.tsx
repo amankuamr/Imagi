@@ -11,9 +11,6 @@ export default function Home() {
       
       {/* Scrollable Content */}
       <div className="relative z-10">
-        {/* Spacer to push content down initially */}
-        <div className="h-screen"></div>
-        
         {/* Recent Play Through Section */}
         <RecentPlayThrough />
         
