@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
@@ -53,12 +54,19 @@ export default function GalleryHeroCarousel() {
                 <img
                   src={img.url}
                   alt={img.title}
-                  className="w-[70vw] h-[80vh] object-cover rounded-lg"
+                  className="w-[70vw] h-[80vh] object-cover rounded-3xl"
                 />
 
-                <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white px-6 py-3 rounded-lg">
-                  <h2 className="text-xl font-semibold text-center">{img.title}</h2>
-                </div>
+                <motion.div
+                  className="absolute bottom-8 right-75 bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-lg"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.3 }}
+                >
+                  <h2 className="text-xl font-semibold">{img.title}</h2>
+                </motion.div>
+
+
               </div>
             </CarouselItem>
           ))}
