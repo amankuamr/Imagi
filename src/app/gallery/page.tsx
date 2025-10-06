@@ -1,10 +1,18 @@
-import GalleryGrid from "@/components/GalleryGrid";
+import GalleryHeroCarousel from "@/components/gallery/GalleryHeroCarousel";
 
 export default function GalleryPage() {
   return (
-    <main>
-      <h1 className="text-3xl font-bold text-center mt-8">Gallery</h1>
-      <GalleryGrid />
-    </main>
+    <div className="relative min-h-screen">
+  <div
+    style={{
+      backgroundImage: 'url(/images/herogallery.jpg)',
+      backgroundSize: 'cover',
+      filter: 'blur(6px)',
+    }}
+    className="fixed -inset-10 -z-10"
+  ></div>
+  <GalleryHeroCarousel />
+</div>
+
   );
 }

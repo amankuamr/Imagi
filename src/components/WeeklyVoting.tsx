@@ -1,7 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, where, orderBy, updateDoc, doc, increment } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, updateDoc, doc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
@@ -10,10 +10,11 @@ import ImagePopup from "@/components/ImagePopup";
 interface WeeklyImage {
     id: string;
     title: string;
-    imageUrl: string;
+    url: string;
+    public_id: string;
+    uploadedAt: Date;
     likes: number;
     dislikes: number;
-    createdAt: Date;
     likedBy?: string[];
     dislikedBy?: string[];
 }
@@ -29,23 +30,17 @@ export default function WeeklyVoting() {
 
     useEffect(() => {
         const fetchWeeklyImages = async () => {
-            // Get start of current week (Monday)
-            const now = new Date();
-            const startOfWeek = new Date(now);
-            startOfWeek.setDate(now.getDate() - now.getDay() + 1);
-            startOfWeek.setHours(0, 0, 0, 0);
-
             const q = query(
-                collection(db, "weeklyImages"),
-                where("createdAt", ">=", startOfWeek),
-                orderBy("createdAt", "desc")
+                collection(db, "images"),
+                orderBy("uploadedAt", "desc"),
+                limit(6)
             );
 
             const querySnapshot = await getDocs(q);
             const imagesData = querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
-                createdAt: doc.data().createdAt.toDate()
+                uploadedAt: doc.data().uploadedAt.toDate()
             })) as WeeklyImage[];
 
             setImages(imagesData);
@@ -60,7 +55,7 @@ export default function WeeklyVoting() {
         try {
             setVotingStates(prev => ({ ...prev, [imageId]: true }));
 
-            const imageRef = doc(db, "weeklyImages", imageId);
+            const imageRef = doc(db, "images", imageId);
             const currentImage = images.find(img => img.id === imageId);
 
             if (!currentImage) return;
@@ -206,14 +201,16 @@ export default function WeeklyVoting() {
                             viewport={{ once: true }}
                             className="group relative aspect-[4/5] rounded-3xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-white/30 transition-all duration-300"
                         >
-                            {/* Game Image Placeholder - matching style */}
+                            {/* Game Image */}
                             <div className="absolute inset-0">
                                 <motion.div
                                     className="w-full h-full"
                                 >
-                                    <div className="w-full h-full bg-gradient-to-br from-green-600/30 to-blue-600/30 flex items-center justify-center">
-                                        <span className="text-white/30 text-lg font-medium">Weekly Image</span>
-                                    </div>
+                                    <img
+                                        src={image.url}
+                                        alt={image.title}
+                                        className="w-full h-full object-cover"
+                                    />
                                 </motion.div>
                             </div>
 
@@ -308,12 +305,12 @@ export default function WeeklyVoting() {
                         </motion.div>
                     ))}
 
-         
+          
                 </div>
 
                 {images.length === 0 && (
                     <div className="text-center py-20">
-                        <p className="text-gray-400 text-lg">No images posted this week yet. Be the first to share!</p>
+                        <p className="text-gray-400 text-lg">No images uploaded yet. Be the first to share!</p>
                     </div>
                 )}
 
@@ -403,7 +400,7 @@ export default function WeeklyVoting() {
             <ImagePopup
                 isOpen={isPopupOpen}
                 onClose={() => setIsPopupOpen(false)}
-                imageUrl={selectedImage?.imageUrl || '/placeholder-image.jpg'}
+                imageUrl={selectedImage?.url || '/placeholder-image.jpg'}
                 name={selectedImage?.title || ''}
                 resolutions={[
                     { label: 'HD (1920x1080)', url: '/downloads/hd-image.jpg' },

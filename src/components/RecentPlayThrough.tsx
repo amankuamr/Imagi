@@ -1,37 +1,36 @@
 "use client";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ImagePopup from "@/components/ImagePopup";
 
-interface Game {
+interface ImageData {
   id: string;
-  name: string;
-  imageUrl?: string;
-  createdAt: Date;
+  title: string;
+  url: string;
+  public_id: string;
+  uploadedAt: Date;
 }
 
 export default function RecentPlayThrough() {
-  const [games, setGames] = useState<Game[]>([]);
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [images, setImages] = useState<ImageData[]>([]);
+  const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-
-
   useEffect(() => {
-    const fetchGames = async () => {
-      const querySnapshot = await getDocs(collection(db, "games"));
-      const gamesData = querySnapshot.docs.map(doc => ({
+    const fetchImages = async () => {
+      const q = query(collection(db, "images"), orderBy("uploadedAt", "desc"), limit(6));
+      const querySnapshot = await getDocs(q);
+      const imagesData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        imageUrl: doc.data().imageUrl,
-        createdAt: doc.data().createdAt.toDate()
-      })) as Game[];
-      setGames(gamesData);
+        uploadedAt: doc.data().uploadedAt.toDate()
+      })) as ImageData[];
+      setImages(imagesData);
     };
-    fetchGames();
+    fetchImages();
   }, []);
 
   return (
@@ -62,16 +61,16 @@ export default function RecentPlayThrough() {
 
         {/* Gaming Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {games.map((game, index) => (
+          {images.map((image, index) => (
             <motion.div
-              key={game.id}
+              key={image.id}
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.2 }}
               viewport={{ once: true }}
               whileHover={{ y: -15, rotateY: 5 }}
               onClick={() => {
-                setSelectedGame(game);
+                setSelectedImage(image);
                 setIsPopupOpen(true);
               }}
               onMouseEnter={() => setHoveredIndex(index)}
@@ -79,18 +78,18 @@ export default function RecentPlayThrough() {
 
               className="group relative aspect-[4/5] rounded-3xl overflow-hidden cursor-pointer"
             >
-
-
-              {/* Game Image Placeholder */}
+              {/* Game Image */}
               <div className="absolute inset-0">
                 <motion.div
                   whileHover={{ scale: 1.1 }}
                   transition={{ duration: 0.8, ease: "easeOut" }}
                   className="w-full h-full"
                 >
-                  <div className="w-full h-full bg-gradient-to-br from-blue-600/30 to-purple-600/30 flex items-center justify-center">
-                    <span className="text-white/30 text-lg font-medium">Game Image</span>
-                  </div>
+                  <img
+                    src={image.url}
+                    alt={image.title}
+                    className="w-full h-full object-cover"
+                  />
                 </motion.div>
               </div>
 
@@ -125,11 +124,9 @@ export default function RecentPlayThrough() {
                 className="absolute bottom-6 left-6 right-6 z-20"
               >
                 <h3 className="text-2xl md:text-3xl font-bold text-white drop-shadow-2xl">
-                  {game.name}
+                  {image.title}
                 </h3>
               </motion.div>
-
-
 
               {/* Glowing Border Effect */}
               <motion.div
@@ -271,8 +268,8 @@ export default function RecentPlayThrough() {
       <ImagePopup
         isOpen={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
-        imageUrl={selectedGame?.imageUrl || '/placeholder-image.jpg'}
-        name={selectedGame?.name || ''}
+        imageUrl={selectedImage?.url || '/placeholder-image.jpg'}
+        name={selectedImage?.title || ''}
         resolutions={[
           { label: 'HD (1920x1080)', url: '/downloads/hd-image.jpg' },
           { label: '4K (3840x2160)', url: '/downloads/4k-image.jpg' },
