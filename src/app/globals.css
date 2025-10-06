@@ -24,3 +24,21 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Prevent dropdown menus from hiding scrollbars */
+[data-radix-scroll-lock] {
+  overflow: visible !important;
+}
+
+html[data-radix-scroll-lock] {
+  overflow: visible !important;
+}
+
+body[data-radix-scroll-lock] {
+  overflow: visible !important;
+}
+
+/* Ensure dropdown portal doesn't interfere with scrolling */
+[data-radix-popper-content-wrapper] {
+  overflow: visible !important;
+}

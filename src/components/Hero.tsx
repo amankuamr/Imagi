@@ -100,7 +100,7 @@ export default function Hero() {
           className="flex flex-col sm:flex-row gap-4 mb-16"
         >
           <button className="group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-2xl">
-            <span className="relative z-10">Start Your Gallery</span>
+            <span className="relative z-10">Explore My Gallery</span>
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
           </button>
 

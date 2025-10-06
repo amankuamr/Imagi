@@ -1,25 +1,14 @@
-import "./globals.css";
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { Inter, Poppins } from "next/font/google";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ClientLayout from "@/components/ClientLayout";
 
-const inter = Inter({ 
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const poppins = Poppins({ 
-  weight: ["400", "500", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-poppins",
-  display: "swap",
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Game Gallery",
-  description: "Showcase your games beautifully",
+  title: "IMAGI - Game Gallery Platform",
+  description: "Transform your gaming memories into stunning visual stories",
 };
 
 export default function RootLayout({
@@ -28,15 +17,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
-      <body className="bg-gray-900 text-white font-sans">
-        {/* Navbar on all pages */}
-        <Navbar />
-
-        <main className="min-h-screen">{children}</main>
-
-        {/* Footer on all pages */}
-        <Footer />
+    <html lang="en">
+      <body className={inter.className}>
+        <AuthProvider>
+          <ClientLayout>
+            {children}
+          </ClientLayout>
+        </AuthProvider>
       </body>
     </html>
   );
