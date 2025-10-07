@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { collection, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, getDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 interface ImageData {
@@ -10,7 +10,7 @@ interface ImageData {
   game?: string;
   url?: string;
   public_id?: string;
-  uploadedAt?: any;
+  uploadedAt?: Timestamp;
 }
 
 interface ConfigData {
@@ -303,7 +303,7 @@ export default function AdminPage() {
                   </button>
                   {img.public_id && (
                     <button
-                      onClick={() => handleDelete(img.public_id, img.id)}
+                      onClick={() => handleDelete(img.public_id!, img.id)}
                       className="flex-1 bg-red-600 text-white py-2 px-3 rounded-md hover:bg-red-700 transition-colors text-sm"
                     >
                       Delete

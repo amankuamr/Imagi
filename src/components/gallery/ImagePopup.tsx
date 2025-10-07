@@ -16,7 +16,9 @@ interface ImagePopupProps {
   isOpen: boolean;
   onClose: () => void;
   onLike: (id: string) => void;
+  onDislike: (id: string) => void;
   isLiked: boolean;
+  isDisliked: boolean;
 }
 
 const resolutions = [
@@ -26,7 +28,7 @@ const resolutions = [
   { name: "Square (1:1)", ratio: 1, width: 1000, height: 1000 },
 ];
 
-export default function ImagePopup({ item, isOpen, onClose, onLike, isLiked }: ImagePopupProps) {
+export default function ImagePopup({ item, isOpen, onClose, onLike, onDislike, isLiked, isDisliked }: ImagePopupProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedResolution, setSelectedResolution] = useState<typeof resolutions[0] | null>(null);
 
@@ -127,8 +129,13 @@ export default function ImagePopup({ item, isOpen, onClose, onLike, isLiked }: I
                 <Heart className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`} />
               </Button>
               <Button
+                onClick={() => onDislike(item.id)}
                 variant="ghost"
-                className="h-10 w-10 p-0 bg-black/50 border border-white/20 text-white hover:text-gray-300"
+                className={`h-10 w-10 p-0 bg-black/50 border border-white/20 ${
+                  isDisliked
+                    ? "text-red-500 hover:text-red-600"
+                    : "text-white hover:text-gray-300"
+                }`}
               >
                 <ThumbsDown className="h-5 w-5" />
               </Button>

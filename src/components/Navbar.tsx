@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ProfileDropdown from "./navbar/ProfileDropdown";
@@ -30,24 +31,24 @@ export default function Navbar() {
             mounted ? "opacity-100 translate-y-0 scale-100" : "opacity-0 -translate-y-2 scale-95"
           ].join(" ")}
         >
-          <a
+          <Link
             href="/"
             className="text-white hover:text-purple-400 transition-colors duration-200 font-medium font-[family-name:var(--font-inter)] tracking-wide"
           >
             Home
-          </a>
-          <a
+          </Link>
+          <Link
             href="/gallery"
             className="text-white hover:text-purple-400 transition-colors duration-200 font-medium font-[family-name:var(--font-inter)] tracking-wide"
           >
             Gallery
-          </a>
-          <a
+          </Link>
+          <Link
             href="/upload"
             className="text-white hover:text-purple-400 transition-colors duration-200 font-medium font-[family-name:var(--font-inter)] tracking-wide"
           >
             Upload
-          </a>
+          </Link>
         </div>
       </div>
 
