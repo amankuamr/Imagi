@@ -38,45 +38,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      console.error('Sign in error:', error);
+      throw error;
+    }
   };
 
   const signUp = async (email: string, password: string, username: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-    // Update the user's display name in Firebase Auth
-    await updateProfile(userCredential.user, {
-      displayName: username
-    });
+      // Update the user's display name in Firebase Auth
+      await updateProfile(userCredential.user, {
+        displayName: username
+      });
 
-    // Store additional user data in Firestore
-    await setDoc(doc(db, 'users', userCredential.user.uid), {
-      username,
-      email,
-      createdAt: new Date(),
-      followers: [],
-      following: []
-    });
-  };
-
-  const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-
-    // Check if user profile exists in Firestore, if not create it
-    const userDocRef = doc(db, 'users', user.uid);
-    const userDocSnap = await getDoc(userDocRef);
-
-    if (!userDocSnap.exists()) {
-      // Create user profile with Google display name as username
-      await setDoc(userDocRef, {
-        username: user.displayName || user.email?.split('@')[0] || 'User',
-        email: user.email,
+      // Store additional user data in Firestore
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        username,
+        email,
         createdAt: new Date(),
         followers: [],
         following: []
       });
+    } catch (error) {
+      console.error('Sign up error:', error);
+      throw error;
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Check if user profile exists in Firestore, if not create it
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (!userDocSnap.exists()) {
+        // Create user profile with Google display name as username
+        await setDoc(userDocRef, {
+          username: user.displayName || user.email?.split('@')[0] || 'User',
+          email: user.email,
+          createdAt: new Date(),
+          followers: [],
+          following: []
+        });
+      }
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      throw error;
     }
   };
 
