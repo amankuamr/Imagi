@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { collection, getDocs, doc, updateDoc, getDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -129,7 +130,7 @@ export default function AdminPage() {
       alert('Image updated successfully!');
       setEditing(null);
       fetchImages();
-    } catch (error) {
+    } catch {
       alert('Error updating image');
     }
   };
@@ -150,7 +151,7 @@ export default function AdminPage() {
       } else {
         alert('Delete failed');
       }
-    } catch (error) {
+    } catch {
       alert('Error deleting image');
     }
   };
@@ -293,8 +294,8 @@ export default function AdminPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {images.map((img) => (
-            <div key={img.id} className="bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-700">
-              {img.url && <img src={img.url} alt={img.title} className="w-full h-48 object-cover" />}
+            <div key={img.id} className="bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-700 relative">
+              {img.url && <Image src={img.url} alt={img.title || ''} fill className="object-cover" />}
               <div className="p-4">
                 {img.title && <h3 className="text-lg font-semibold text-white mb-2">{img.title}</h3>}
                 {img.genre && <p className="text-sm text-blue-400 mb-1">Genre: {img.genre}</p>}

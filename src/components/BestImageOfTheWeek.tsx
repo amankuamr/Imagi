@@ -81,7 +81,6 @@ export default function BestImageOfTheWeek() {
           {images.map((image, index) => {
             const isFirst = image.rank === 1;
             const isSecond = image.rank === 2;
-            const isThird = image.rank === 3;
             
             return (
               <motion.div

@@ -12,7 +12,7 @@ interface FirebaseUser {
   id: string;
   username: string;
   email: string;
-  createdAt: any;
+  createdAt: Date;
   followers?: string[];
   following?: string[];
 }
@@ -132,7 +132,7 @@ export default function UsersPanel({ isOpen, onClose }: UsersPanelProps) {
                 </div>
               ) : filteredUsers.length === 0 ? (
                 <div className="text-center text-white/60 py-8">
-                  No users found matching "{searchQuery}"
+                  No users found matching {"\""}{searchQuery}{"\""}
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-4">

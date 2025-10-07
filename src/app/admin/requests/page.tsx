@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -118,12 +119,13 @@ export default function AdminRequests() {
               </div>
 
               {request.type === 'image_upload' ? (
-                <div className="mb-4">
+                <div className="mb-4 relative h-48">
                   {request.url && (
-                    <img
+                    <Image
                       src={request.url}
-                      alt={request.title}
-                      className="w-full max-w-sm h-48 object-cover rounded-lg mb-4"
+                      alt={request.title || ''}
+                      fill
+                      className="object-cover rounded-lg"
                     />
                   )}
                   <div className="space-y-2">

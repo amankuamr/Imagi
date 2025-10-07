@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import cloudinary from '@/lib/cloudinary';
 import { db } from '@/lib/firebase';
-import { collection, doc, deleteDoc, getDocs, query, where } from 'firebase/firestore';
+import { doc, deleteDoc } from 'firebase/firestore';
 
 export async function POST(request: NextRequest) {
   const { public_id, doc_id } = await request.json();

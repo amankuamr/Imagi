@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
-import { collection, getDoc, doc } from 'firebase/firestore';
+import { getDoc, doc } from 'firebase/firestore';
 
 interface ConfigData {
   genres: string[];
@@ -64,7 +64,7 @@ export default function UploadPage() {
       } else {
         alert('Upload failed');
       }
-    } catch (error) {
+    } catch {
       alert('Error uploading');
     } finally {
       setUploading(false);

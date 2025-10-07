@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ImagePopup from "@/components/ImagePopup";
@@ -79,16 +80,17 @@ export default function RecentPlayThrough() {
               className="group relative aspect-[4/5] rounded-3xl overflow-hidden cursor-pointer"
             >
               {/* Game Image */}
-              <div className="absolute inset-0">
+              <div className="absolute inset-0 relative">
                 <motion.div
                   whileHover={{ scale: 1.1 }}
                   transition={{ duration: 0.8, ease: "easeOut" }}
                   className="w-full h-full"
                 >
-                  <img
+                  <Image
                     src={image.url}
                     alt={image.title}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                 </motion.div>
               </div>
