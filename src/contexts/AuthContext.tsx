@@ -29,9 +29,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check for persisted auth state in development
+    if (process.env.NODE_ENV === 'development') {
+      const persistedUser = localStorage.getItem('firebase-auth-user');
+      if (persistedUser) {
+        try {
+          const userData = JSON.parse(persistedUser);
+          setUser(userData);
+          setLoading(false);
+        } catch (error) {
+          console.warn('Failed to parse persisted auth user:', error);
+        }
+      }
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
+
+      // Persist auth state in development
+      if (process.env.NODE_ENV === 'development') {
+        if (user) {
+          localStorage.setItem('firebase-auth-user', JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            emailVerified: user.emailVerified
+          }));
+        } else {
+          localStorage.removeItem('firebase-auth-user');
+        }
+      }
     });
 
     return unsubscribe;
@@ -97,6 +126,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await signOut(auth);
+    // Clear persisted auth state
+    if (process.env.NODE_ENV === 'development') {
+      localStorage.removeItem('firebase-auth-user');
+    }
   };
 
   const value = {
