@@ -1,44 +1,47 @@
 "use client";
-import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import Image from "next/image";
 import GalleryHeroCarousel from "@/components/gallery/GalleryHeroCarousel";
 import GalleryGridSection from "@/components/gallery/GalleryGridSection";
-import { motion, AnimatePresence } from "framer-motion";
-import GalleryPreloader from "@/components/loading/GalleryPreloader";
 
 export default function GalleryPage() {
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
-    <>
-      <AnimatePresence>
-        {isLoading && <GalleryPreloader />}
-      </AnimatePresence>
-      
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        transition={{ duration: 0.8 }}
-        className="relative min-h-screen"
+    <div className="relative">
+      {/* Background Image */}
+      <motion.div
+        initial={{ scale: 1.1 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 1.5, ease: "easeOut" }}
+        className="fixed inset-0 z-0"
       >
-        <div
-          style={{
-            backgroundImage: 'url(/images/herogallery.jpg)',
-            backgroundSize: 'cover',
-            filter: 'blur(6px)',
-          }}
-          className="fixed -inset-10 -z-10"
-        ></div>
+        <Image
+          src="/images/herogallery.jpg"
+          alt="Gallery Hero Background"
+          fill
+          className="object-cover"
+          priority
+          quality={90}
+        />
+      </motion.div>
+
+      {/* Gradient Overlay */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, delay: 0.3 }}
+        className="fixed inset-0 bg-black/50 z-5"
+      />
+
+      {/* Gallery Content */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, delay: 0.5 }}
+        className="relative z-10"
+      >
         <GalleryHeroCarousel />
         <GalleryGridSection />
       </motion.div>
-    </>
+    </div>
   );
 }

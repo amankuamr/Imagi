@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Package, Settings } from "lucide-react";
+import { LayoutDashboard, Package, Settings, FileText } from "lucide-react";
 
 export default function AdminNavbar() {
   const pathname = usePathname();
@@ -11,6 +11,7 @@ export default function AdminNavbar() {
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/products", label: "Add/Edit Products", icon: Package },
     { href: "/admin/config", label: "Config", icon: Settings },
+    { href: "/admin/requests", label: "Requests", icon: FileText },
   ];
 
   return (

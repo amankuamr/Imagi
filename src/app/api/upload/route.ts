@@ -10,8 +10,10 @@ export async function POST(request: NextRequest) {
   const name = formData.get('name') as string;
   const genre = formData.get('genre') as string;
   const game = formData.get('game') as string;
+  const userId = formData.get('userId') as string;
+  const userEmail = formData.get('userEmail') as string;
 
-  if (!file || !name || !genre || !game) {
+  if (!file || !name || !genre || !game || !userId || !userEmail) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
@@ -32,18 +34,18 @@ export async function POST(request: NextRequest) {
     });
 
    
-    // Save metadata to Firestore
-    await addDoc(collection(db, 'images'), {
+    // Save request to Firestore
+    await addDoc(collection(db, 'requests'), {
+      userId: userId,
+      userEmail: userEmail,
+      type: 'image_upload',
       title: name,
       genre: genre,
       game: game,
       url: result.secure_url,
       public_id: result.public_id,
-      uploadedAt: new Date(),
-      likes: 0,
-      dislikes: 0,
-      likedBy: [],
-      dislikedBy: [],
+      status: 'pending',
+      createdAt: new Date(),
     });
 
     return NextResponse.json({ message: 'Uploaded successfully', url: result.secure_url });
