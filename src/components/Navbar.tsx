@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShoppingCart } from "lucide-react";
+import { Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ProfileDropdown from "./navbar/ProfileDropdown";
+import UsersPanel from "./sidebar/UsersPanel";
 
 export default function Navbar() {
   const [mounted, setMounted] = useState(false);
+  const [isUsersPanelOpen, setIsUsersPanelOpen] = useState(false);
   const { user, logout } = useAuth();
 
   useEffect(() => {
@@ -63,10 +65,19 @@ export default function Navbar() {
 
         <ProfileDropdown user={user} logout={logout} />
 
-        <button className="text-white hover:text-purple-400 transition-colors duration-200" aria-label="Cart">
-          <ShoppingCart size={20} />
+        <button
+          onClick={() => setIsUsersPanelOpen(true)}
+          className="text-white hover:text-purple-400 transition-colors duration-200"
+          aria-label="Users"
+        >
+          <Users size={20} />
         </button>
       </div>
+
+      <UsersPanel
+        isOpen={isUsersPanelOpen}
+        onClose={() => setIsUsersPanelOpen(false)}
+      />
     </nav>
   );
 }

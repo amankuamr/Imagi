@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs, doc, updateDoc, getDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ImageData {
   id: string;
@@ -32,6 +33,7 @@ export default function AdminPage() {
   const [editGame, setEditGame] = useState('');
   const [genres, setGenres] = useState<string[]>([]);
   const [games, setGames] = useState<string[]>([]);
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchImages();
@@ -69,17 +71,21 @@ export default function AdminPage() {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadFile || !uploadName || !uploadGenre || !uploadGame) return;
+    if (!uploadFile || !uploadName || !uploadGenre || !uploadGame || !user) return;
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append('image', uploadFile);
-    formData.append('name', uploadName);
-    formData.append('genre', uploadGenre);
-    formData.append('game', uploadGame);
 
     try {
-      const res = await fetch('/api/upload', {
+      // Upload directly to Cloudinary and save to images collection
+      const formData = new FormData();
+      formData.append('image', uploadFile);
+      formData.append('name', uploadName);
+      formData.append('genre', uploadGenre);
+      formData.append('game', uploadGame);
+      formData.append('userId', user.uid);
+      formData.append('userEmail', user.email || '');
+
+      const res = await fetch('/api/admin-upload', {
         method: 'POST',
         body: formData,
       });
@@ -92,9 +98,11 @@ export default function AdminPage() {
         setUploadFile(null);
         fetchImages(); // Refresh list
       } else {
-        alert('Upload failed');
+        const errorData = await res.json();
+        alert(`Upload failed: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
+      console.error('Upload error:', error);
       alert('Error uploading image');
     } finally {
       setUploading(false);

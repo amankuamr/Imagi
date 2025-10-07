@@ -57,6 +57,7 @@ export default function AdminRequests() {
           url: request.url,
           public_id: request.public_id,
           uploadedAt: request.createdAt,
+          userId: request.userId,
           likes: 0,
           dislikes: 0,
           likedBy: [],

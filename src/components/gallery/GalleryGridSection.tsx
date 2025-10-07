@@ -1,10 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Heart, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FilterDropdown from "./FilterDropdown";
 import ImagePopup from "./ImagePopup";
+import GalleryCard from "./GridCard/GalleryCard";
 import { collection, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +16,7 @@ interface GalleryItem {
   votes: number;
   genre: string;
   game: string;
+  userId?: string;
 }
 
 interface FirebaseImage {
@@ -28,6 +29,13 @@ interface FirebaseImage {
   dislikes?: number;
   likedBy?: string[];
   dislikedBy?: string[];
+  userId?: string;
+}
+
+interface UserData {
+  id: string;
+  username: string;
+  email: string;
 }
 
 interface ConfigData {
@@ -44,11 +52,13 @@ export default function GalleryGridSection() {
   const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
   const [config, setConfig] = useState<ConfigData>({ genres: [], games: [] });
+  const [users, setUsers] = useState<Record<string, UserData>>({});
   const { user } = useAuth();
 
   useEffect(() => {
     fetchImages();
     fetchConfig();
+    fetchUsers();
   }, []);
 
   const fetchImages = async () => {
@@ -76,6 +86,36 @@ export default function GalleryGridSection() {
     } catch (error) {
       console.error('Error fetching config:', error);
     }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      const usersData: Record<string, UserData> = {};
+      querySnapshot.docs.forEach(doc => {
+        usersData[doc.id] = {
+          id: doc.id,
+          username: doc.data().username || 'Unknown User',
+          email: doc.data().email || 'unknown@example.com'
+        };
+      });
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  const getUserData = (userId: string): UserData => {
+    console.log('Getting user data for:', userId, 'Available users:', Object.keys(users));
+
+    // Handle admin uploads
+    if (userId === 'admin') {
+      return { id: 'admin', username: 'Admin', email: 'admin@imagi.com' };
+    }
+
+    const userData = users[userId];
+    console.log('Found user data:', userData);
+    return userData || { id: userId, username: 'Unknown User', email: 'unknown@example.com' };
   };
 
   const filteredImages = images.filter(img => {
@@ -156,6 +196,19 @@ export default function GalleryGridSection() {
     }
   };
 
+  const handleFollow = async (targetUserId: string) => {
+    if (!user) return;
+
+    try {
+      // In real implementation, update following/followers in Firestore
+      console.log(`Following user: ${targetUserId}`);
+      // For now, just show a success message
+      alert(`Followed user successfully!`);
+    } catch (error) {
+      console.error('Error following user:', error);
+    }
+  };
+
   const loadMore = () => {
     setVisibleCount(prev => prev + 16);
   };
@@ -167,6 +220,7 @@ export default function GalleryGridSection() {
     votes: img.likes || 0,
     genre: img.genre || 'Unknown',
     game: img.game || 'Unknown',
+    userId: img.userId,
   }));
 
   const getIsLiked = (id: string) => {
@@ -219,84 +273,22 @@ export default function GalleryGridSection() {
         {/* Grid */}
         <div className="grid grid-cols-4 gap-6 mb-12">
           {visibleItems.map((item, index) => (
-            <motion.div
+            <GalleryCard
               key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              viewport={{ once: true }}
-              whileHover={{ scale: 1.02 }}
-              onClick={() => {
-                setSelectedItem(item);
+              item={item}
+              index={index}
+              onCardClick={(selectedItem) => {
+                setSelectedItem(selectedItem);
                 setPopupOpen(true);
               }}
-              className="group relative bg-white/5 backdrop-blur-sm rounded-xl overflow-hidden border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer"
-            >
-              {/* Genre tag - top left */}
-              <div className="absolute top-3 left-3 z-10">
-                <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-medium">
-                  {item.genre}
-                </span>
-              </div>
-
-              {/* Like/Dislike buttons - top right */}
-              <div className="absolute top-3 right-3 flex gap-2 z-10">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleLike(item.id);
-                  }}
-                  className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 border border-white/20"
-                  disabled={!user}
-                >
-                  <Heart
-                    className={`h-4 w-4 ${
-                      getIsLiked(item.id)
-                        ? "fill-red-500 text-red-500"
-                        : "text-white"
-                    }`}
-                  />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleDislike(item.id);
-                  }}
-                  className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 border border-white/20"
-                  disabled={!user}
-                >
-                  <ThumbsDown className={`h-4 w-4 ${getIsDisliked(item.id) ? "text-red-500" : "text-white"}`} />
-                </Button>
-              </div>
-
-              {/* Image */}
-              <div className="aspect-square overflow-hidden">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-
-              {/* Content */}
-              <div className="p-4">
-                <h3 className="text-white font-semibold text-sm mb-2 truncate">
-                  {item.name}
-                </h3>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-300 text-xs font-medium">
-                    {item.game}
-                  </span>
-                  <span className="text-gray-400 text-xs">
-                    {item.votes.toLocaleString()} votes
-                  </span>
-                </div>
-              </div>
-            </motion.div>
+              onLike={toggleLike}
+              onDislike={toggleDislike}
+              onFollow={handleFollow}
+              isLiked={getIsLiked(item.id)}
+              isDisliked={getIsDisliked(item.id)}
+              currentUserId={user?.uid}
+              getUserData={getUserData}
+            />
           ))}
         </div>
 

@@ -1,21 +1,23 @@
 "use client";
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { 
-  User, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut, 
+import {
+  User,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  updateProfile
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, username: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -39,13 +41,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const signUp = async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password);
+  const signUp = async (email: string, password: string, username: string) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+    // Update the user's display name in Firebase Auth
+    await updateProfile(userCredential.user, {
+      displayName: username
+    });
+
+    // Store additional user data in Firestore
+    await setDoc(doc(db, 'users', userCredential.user.uid), {
+      username,
+      email,
+      createdAt: new Date(),
+      followers: [],
+      following: []
+    });
   };
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    // Check if user profile exists in Firestore, if not create it
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (!userDocSnap.exists()) {
+      // Create user profile with Google display name as username
+      await setDoc(userDocRef, {
+        username: user.displayName || user.email?.split('@')[0] || 'User',
+        email: user.email,
+        createdAt: new Date(),
+        followers: [],
+        following: []
+      });
+    }
   };
 
   const logout = async () => {
