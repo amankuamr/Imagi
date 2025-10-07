@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ImagePopup from "@/components/ImagePopup";
 
@@ -12,7 +12,20 @@ interface ImageData {
   url: string;
   public_id: string;
   uploadedAt: Date;
+  userId: string;
+  username: string;
 }
+
+const formatTimeAgo = (date: Date) => {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return 'Just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  return date.toLocaleDateString();
+};
 
 export default function RecentPlayThrough() {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -22,14 +35,52 @@ export default function RecentPlayThrough() {
 
   useEffect(() => {
     const fetchImages = async () => {
-      const q = query(collection(db, "images"), orderBy("uploadedAt", "desc"), limit(3));
-      const querySnapshot = await getDocs(q);
-      const imagesData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        uploadedAt: doc.data().uploadedAt.toDate()
-      })) as ImageData[];
-      setImages(imagesData);
+      try {
+        console.log('Fetching images...');
+        const q = query(collection(db, "images"), orderBy("uploadedAt", "desc"), limit(3));
+        const querySnapshot = await getDocs(q);
+        console.log('Query snapshot:', querySnapshot.docs.length, 'documents');
+
+        const imagesData = await Promise.all(
+          querySnapshot.docs.map(async (docSnap) => {
+            const data = docSnap.data();
+            console.log('Image data:', data);
+            let username = 'Unknown User';
+
+            if (data.userId) {
+              try {
+                console.log('Fetching user for userId:', data.userId);
+                const userDoc = await getDoc(doc(db, 'users', data.userId));
+                if (userDoc.exists()) {
+                  username = userDoc.data().username || 'Unknown User';
+                  console.log('Found username:', username);
+                } else {
+                  console.log('User document not found for userId:', data.userId);
+                }
+              } catch (error) {
+                console.error('Error fetching user:', error);
+              }
+            } else {
+              console.log('No userId in image data');
+            }
+
+            return {
+              id: docSnap.id,
+              title: data.title || '',
+              url: data.url || '',
+              public_id: data.public_id || '',
+              uploadedAt: data.uploadedAt.toDate(),
+              userId: data.userId || '',
+              username
+            } as ImageData;
+          })
+        );
+
+        console.log('Final images data:', imagesData);
+        setImages(imagesData);
+      } catch (error) {
+        console.error('Error fetching images:', error);
+      }
     };
     fetchImages();
   }, []);
@@ -80,16 +131,19 @@ export default function RecentPlayThrough() {
               className="group relative aspect-[4/5] rounded-3xl overflow-hidden cursor-pointer"
             >
               {/* Game Image */}
-              <div className="absolute inset-0 relative">
+              <div className="absolute inset-0">
                 <motion.div
                   whileHover={{ scale: 1.1 }}
                   transition={{ duration: 0.8, ease: "easeOut" }}
-                  className="w-full h-full"
+                  className="relative w-full h-full"
                 >
                   <Image
                     src={image.url}
                     alt={image.title}
                     fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    quality={100}
+                    unoptimized
                     className="object-cover"
                   />
                 </motion.div>
@@ -115,20 +169,22 @@ export default function RecentPlayThrough() {
                 </motion.span>
               </div>
 
-              {/* Game Title - appears on hover */}
-              <motion.div
-                animate={{
-                  opacity: hoveredIndex === index ? 1 : 0,
-                  y: hoveredIndex === index ? 0 : 20
-                }}
-                transition={{ duration: 0.4, delay: hoveredIndex === index ? 0.1 : 0 }}
+              {/* Time and Date - always visible at top */}
+              <div className="absolute top-6 left-6 right-6 z-20">
+                <div className="text-sm text-white bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 inline-block font-medium drop-shadow-sm">
+                  {formatTimeAgo(image.uploadedAt)}
+                </div>
+              </div>
 
-                className="absolute bottom-6 left-6 right-6 z-20"
-              >
-                <h3 className="text-2xl md:text-3xl font-bold text-white drop-shadow-2xl">
-                  {image.title}
-                </h3>
-              </motion.div>
+              {/* Image Title and Poster Name - always visible at bottom */}
+              <div className="absolute bottom-6 left-6 right-6 z-20">
+                <div className="flex items-center justify-between text-sm text-white bg-black/60 backdrop-blur-md rounded-lg px-3 py-2 border border-white/20 shadow-lg">
+                  <span className="text-gray-200 font-bold drop-shadow-sm truncate max-w-[120px]">{image.title}</span>
+                  <span className="font-light text-white drop-shadow-sm">
+                    <span className="text-gray-400 mx-1">|</span>{image.username}
+                  </span>
+                </div>
+              </div>
 
               {/* Glowing Border Effect */}
               <motion.div
