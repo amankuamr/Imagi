@@ -313,7 +313,7 @@ export default function TrendingGamesThisWeek() {
             transition={{ duration: 0.8, delay: 0.4 }}
             viewport={{ once: true }}
           >
-            Discover the hottest games everyone's playing and uploading screenshots for this week
+            Discover the hottest games everyone&apos;s playing and uploading screenshots for this week
           </motion.p>
 
           {/* Decorative Line */}
