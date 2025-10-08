@@ -1,5 +1,5 @@
 "use client";
-import { motion, useScroll, useSpring, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useState, useEffect } from "react";
 import { ChevronUp } from "lucide-react";
 import Hero from "@/components/Hero";

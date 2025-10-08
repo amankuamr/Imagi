@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 interface GameCategory {
   id: string;

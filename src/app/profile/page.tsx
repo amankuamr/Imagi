@@ -1,8 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { collection, query, where, getDocs, orderBy, doc, updateDoc, getDoc, setDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { updateProfile } from "firebase/auth";
 import { motion } from "framer-motion";
@@ -32,7 +32,7 @@ interface ProfileUser {
   photoURL?: string;
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -149,7 +149,7 @@ export default function ProfilePage() {
     };
 
     fetchUserData();
-  }, [user, router, profileUserId, loading]);
+  }, [user, router, profileUserId, loading, lastEditTime]);
 
   const getDaysUntilNextEdit = () => {
     if (!lastEditTime) return 0;
@@ -349,5 +349,17 @@ export default function ProfilePage() {
         className="absolute bottom-32 left-32 w-3 h-3 bg-gradient-to-r from-green-400 to-blue-400 rounded-full blur-sm z-30 opacity-70"
       />
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    }>
+      <ProfilePageContent />
+    </Suspense>
   );
 }
