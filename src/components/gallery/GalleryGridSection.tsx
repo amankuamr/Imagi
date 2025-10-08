@@ -196,18 +196,6 @@ export default function GalleryGridSection() {
     }
   };
 
-  const handleFollow = async (targetUserId: string) => {
-    if (!user) return;
-
-    try {
-      // In real implementation, update following/followers in Firestore
-      console.log(`Following user: ${targetUserId}`);
-      // For now, just show a success message
-      alert(`Followed user successfully!`);
-    } catch (error) {
-      console.error('Error following user:', error);
-    }
-  };
 
   const loadMore = () => {
     setVisibleCount(prev => prev + 16);
@@ -283,7 +271,6 @@ export default function GalleryGridSection() {
               }}
               onLike={toggleLike}
               onDislike={toggleDislike}
-              onFollow={handleFollow}
               isLiked={getIsLiked(item.id)}
               isDisliked={getIsDisliked(item.id)}
               currentUserId={user?.uid}

@@ -2,17 +2,25 @@ import { useState, useEffect } from "react";
 import { User } from "firebase/auth";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Save, User as UserIcon } from "lucide-react";
+import { X, Save, User as UserIcon, Upload, ImageIcon } from "lucide-react";
+import { compressImage, validateImageFile, formatFileSize } from "@/lib/imageCompression";
 
 interface EditForm {
   displayName: string;
   profileImage: string;
 }
 
+interface ProfileUser {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string | null;
+}
+
 interface EditProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: User;
+  user: User | ProfileUser;
   onSave: (formData: EditForm) => Promise<void>;
 }
 
@@ -22,6 +30,9 @@ export default function EditProfileModal({ isOpen, onClose, user, onSave }: Edit
     profileImage: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Avatar options - these would typically come from the server
   const avatarOptions = [
@@ -53,14 +64,82 @@ export default function EditProfileModal({ isOpen, onClose, user, onSave }: Edit
     }
   }, [isOpen, user]);
 
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file
+    if (!validateImageFile(file)) {
+      alert('Please select a valid image file (JPEG, PNG, WebP) under 10MB.');
+      return;
+    }
+
+    try {
+      // Compress the image
+      setIsLoading(true);
+      setUploadProgress(20);
+      const compressedFile = await compressImage(file, 800, 800, 0.8);
+      setUploadProgress(50);
+
+      // Create preview
+      const preview = URL.createObjectURL(compressedFile);
+      setPreviewUrl(preview);
+      setSelectedFile(compressedFile);
+
+      // Clear any existing URL input
+      setFormData(prev => ({ ...prev, profileImage: '' }));
+
+      setUploadProgress(100);
+    } catch (error) {
+      console.error('Image compression failed:', error);
+      alert('Failed to process image. Please try again.');
+    } finally {
+      setIsLoading(false);
+      setUploadProgress(0);
+    }
+  };
+
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      await onSave(formData);
+      let finalProfileImage = formData.profileImage;
+
+      // If user selected a file, upload it first
+      if (selectedFile) {
+        setUploadProgress(10);
+
+        const uploadFormData = new FormData();
+        uploadFormData.append('image', selectedFile);
+        uploadFormData.append('userId', user.uid);
+
+        const uploadResponse = await fetch('/api/profile-photo', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const uploadResult = await uploadResponse.json();
+        finalProfileImage = uploadResult.url;
+        setUploadProgress(50);
+      }
+
+      // Save profile with the image URL
+      await onSave({
+        ...formData,
+        profileImage: finalProfileImage
+      });
+
+      setUploadProgress(100);
     } catch (error) {
       console.error('Save error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to save profile');
     } finally {
       setIsLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -107,29 +186,80 @@ export default function EditProfileModal({ isOpen, onClose, user, onSave }: Edit
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Profile Image URL
+                  Upload Profile Photo
+                </label>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="profile-photo-upload"
+                      disabled={isLoading}
+                    />
+                    <label
+                      htmlFor="profile-photo-upload"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Upload className="w-4 h-4 text-blue-600" />
+                      <span className="text-blue-700 font-medium">
+                        {selectedFile ? 'Change Photo' : 'Choose Photo'}
+                      </span>
+                    </label>
+                    {selectedFile && (
+                      <span className="text-sm text-gray-600">
+                        {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Preview */}
+                  {(previewUrl || (formData.profileImage && !getSelectedAvatar())) && (
+                    <div className="flex justify-center">
+                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-300">
+                        <Image
+                          src={previewUrl || formData.profileImage}
+                          alt="Profile preview"
+                          width={80}
+                          height={80}
+                          className="w-full h-full object-cover"
+                          unoptimized
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Progress bar */}
+                  {uploadProgress > 0 && uploadProgress < 100 && (
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Or Enter Image URL
                 </label>
                 <input
                   type="url"
                   value={formData.profileImage}
-                  onChange={(e) => setFormData(prev => ({ ...prev, profileImage: e.target.value }))}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, profileImage: e.target.value }));
+                    // Clear file selection when URL is entered
+                    if (e.target.value) {
+                      setSelectedFile(null);
+                      setPreviewUrl(null);
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter image URL or leave empty"
                 />
-                {(formData.profileImage && !getSelectedAvatar()) && (
-                  <div className="mt-2 flex justify-center">
-                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-300">
-                      <Image
-                        src={formData.profileImage}
-                        alt="Profile preview"
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                        unoptimized
-                      />
-                    </div>
-                  </div>
-                )}
 
                 {getSelectedAvatar() && (
                   <div className="mt-2 flex justify-center">

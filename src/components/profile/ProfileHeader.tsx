@@ -3,8 +3,15 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Edit3 } from "lucide-react";
 
+interface ProfileUser {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string | null;
+}
+
 interface ProfileHeaderProps {
-  user: User;
+  user: User | ProfileUser;
   canEdit: boolean;
   isAdmin: boolean;
   getDaysUntilNextEdit: () => number;
@@ -40,6 +47,7 @@ export default function ProfileHeader({
   createdAt
 }: ProfileHeaderProps) {
   const selectedAvatar = user.photoURL ? getAvatarById(user.photoURL) : null;
+  const hasPhotoURL = user.photoURL && typeof user.photoURL === 'string';
   return (
     <div className="relative pt-20 pb-10 px-6">
       <div className="max-w-6xl mx-auto">
@@ -53,7 +61,7 @@ export default function ProfileHeader({
               <div className={`w-full h-full bg-gradient-to-br ${selectedAvatar.color} flex items-center justify-center`}>
                 <span className="text-4xl">{selectedAvatar.emoji}</span>
               </div>
-            ) : user.photoURL ? (
+            ) : hasPhotoURL ? (
               <Image
                 src={user.photoURL}
                 alt={user.displayName || 'Profile'}

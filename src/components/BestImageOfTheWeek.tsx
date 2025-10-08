@@ -1,16 +1,21 @@
 "use client";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ImagePopup from "@/components/ImagePopup";
+import { ThumbsUp, ThumbsDown, User } from "lucide-react";
 
 interface BestImage {
   id: string;
   title: string;
-  imageUrl: string;
+  url: string;
+  likes: number;
+  dislikes: number;
+  uploadedAt: Date;
   rank: number;
-  createdAt: Date;
+  userId: string;
+  posterName?: string; // Will be fetched
 }
 
 export default function BestImageOfTheWeek() {
@@ -20,26 +25,75 @@ export default function BestImageOfTheWeek() {
 
   useEffect(() => {
     const fetchBestImages = async () => {
-      const q = query(collection(db, "bestImages"), orderBy("rank"));
-      const querySnapshot = await getDocs(q);
-      const imagesData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt.toDate()
-      })) as BestImage[];
-      setImages(imagesData.slice(0, 3)); // Ensure only top 3
+      try {
+        // Fetch images ordered by likes (most liked first), limit to 3
+        const q = query(collection(db, "images"), orderBy("likes", "desc"), limit(3));
+        const querySnapshot = await getDocs(q);
+
+        const imagesData = querySnapshot.docs.map((doc, index) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            title: data.title || 'Untitled',
+            url: data.url || '',
+            likes: data.likes || 0,
+            dislikes: data.dislikes || 0,
+            uploadedAt: data.uploadedAt?.toDate() || new Date(),
+            rank: index + 1, // Assign ranks 1, 2, 3 based on position
+            userId: data.userId || '',
+            posterName: undefined // Will be fetched below
+          };
+        }) as BestImage[];
+
+        // Fetch poster names for each image
+        const imagesWithPosters = await Promise.all(
+          imagesData.map(async (image) => {
+            if (image.userId) {
+              try {
+                const userDoc = await getDoc(doc(db, 'users', image.userId));
+                if (userDoc.exists()) {
+                  const userData = userDoc.data();
+                  return {
+                    ...image,
+                    posterName: userData.username || userData.email?.split('@')[0] || 'Anonymous'
+                  };
+                }
+              } catch (error) {
+                console.warn('Error fetching user data for image:', image.id, error);
+              }
+            }
+            return {
+              ...image,
+              posterName: 'Anonymous'
+            };
+          })
+        );
+
+        // Ensure we have at least 3 images for the podium, fill with empty if needed
+        const podiumImages = [...imagesWithPosters];
+        while (podiumImages.length < 3) {
+          podiumImages.push({
+            id: `placeholder-${podiumImages.length}`,
+            title: 'Coming Soon',
+            url: '/placeholder-image.jpg',
+            likes: 0,
+            dislikes: 0,
+            uploadedAt: new Date(),
+            rank: podiumImages.length + 1,
+            userId: '',
+            posterName: 'Anonymous'
+          });
+        }
+
+        setImages(podiumImages.slice(0, 3));
+      } catch (error) {
+        console.error('Error fetching best images:', error);
+        setImages([]);
+      }
     };
     fetchBestImages();
   }, []);
 
-  const getRankColor = (rank: number) => {
-    switch (rank) {
-      case 1: return "from-yellow-400 to-yellow-600";
-      case 2: return "from-gray-300 to-gray-500";
-      case 3: return "from-orange-400 to-orange-600";
-      default: return "from-blue-400 to-blue-600";
-    }
-  };
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -77,11 +131,14 @@ export default function BestImageOfTheWeek() {
         </motion.div>
 
         {/* Podium Layout */}
-        <div className="flex justify-center items-end gap-8 mb-16">
+        <div className="flex justify-center items-end gap-6 mb-16">
           {images.map((image, index) => {
             const isFirst = image.rank === 1;
             const isSecond = image.rank === 2;
-            
+
+            // Size variations: 1st place bigger, others smaller
+            const containerWidth = isFirst ? 'w-80' : 'w-72';
+
             return (
               <motion.div
                 key={image.id}
@@ -89,30 +146,30 @@ export default function BestImageOfTheWeek() {
                 whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -10, scale: 1.05 }}
+                whileHover={{ y: -5, scale: isFirst ? 1.08 : 1.03 }}
                 onClick={() => {
                   setSelectedImage(image);
                   setIsPopupOpen(true);
                 }}
-                className={`relative group cursor-pointer ${
+                className={`relative group cursor-pointer hover-trigger ${
                   isFirst ? 'order-2' : isSecond ? 'order-1' : 'order-3'
                 }`}
               >
-                {/* Podium Base */}
-                <div className={`w-80 h-${isFirst ? '96' : isSecond ? '80' : '72'} bg-gradient-to-t ${getRankColor(image.rank)} rounded-t-3xl mb-4 shadow-2xl`}>
-                  <div className="w-full h-full bg-black/20 rounded-t-3xl backdrop-blur-sm"></div>
-                </div>
-
                 {/* Image Container */}
-                <div className="relative w-80 aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl">
+                <div className={`relative ${containerWidth} aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl`}>
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
                     className="w-full h-full"
                   >
-                    <div className="w-full h-full bg-gradient-to-br from-purple-600/30 to-pink-600/30 flex items-center justify-center">
-                      <span className="text-white/30 text-lg font-medium">Best Image</span>
-                    </div>
+                    <img
+                      src={image.url}
+                      alt={image.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = '/placeholder-image.jpg';
+                      }}
+                    />
                   </motion.div>
 
                   {/* Rank Badge */}
@@ -131,20 +188,6 @@ export default function BestImageOfTheWeek() {
                     </motion.div>
                   </div>
 
-                  {/* Title Overlay */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileHover={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4 }}
-                    className="absolute bottom-6 left-6 right-6 z-20"
-                  >
-                    <h3 className="text-xl md:text-2xl font-bold text-white drop-shadow-2xl">
-                      {image.title}
-                    </h3>
-                    <p className="text-white/80 text-sm mt-1">
-                      #{image.rank} Place
-                    </p>
-                  </motion.div>
 
                   {/* Glow Effect */}
                   <motion.div
@@ -166,6 +209,35 @@ export default function BestImageOfTheWeek() {
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 pointer-events-none"
                   />
                 </div>
+
+                {/* Image Info Below */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.2 + 0.3 }}
+                  viewport={{ once: true }}
+                  className={`${containerWidth} mt-4 text-center`}
+                >
+                  <h4 className="text-white font-semibold text-lg mb-2 truncate">
+                    {image.title}
+                  </h4>
+
+                  <div className="flex items-center justify-center gap-6 text-sm text-gray-300">
+                    <div className="flex items-center gap-2">
+                      <ThumbsUp className="w-4 h-4 text-green-400" />
+                      <span className="font-medium">{image.likes}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ThumbsDown className="w-4 h-4 text-red-400" />
+                      <span className="font-medium">{image.dislikes}</span>
+                    </div>
+                  </div>
+
+                  <p className="text-gray-400 text-sm mt-2 flex items-center justify-center gap-1">
+                    <User className="w-3 h-3" />
+                    <span>by <span className="text-blue-400 font-medium">{image.posterName || 'Anonymous'}</span></span>
+                  </p>
+                </motion.div>
               </motion.div>
             );
           })}
@@ -226,7 +298,7 @@ export default function BestImageOfTheWeek() {
       <ImagePopup
         isOpen={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
-        imageUrl={selectedImage?.imageUrl || '/placeholder-image.jpg'}
+        imageUrl={selectedImage?.url || '/placeholder-image.jpg'}
         name={selectedImage?.title || ''}
         resolutions={[
           { label: 'HD (1920x1080)', url: '/downloads/hd-image.jpg' },

@@ -26,7 +26,6 @@ interface GalleryCardProps {
   onCardClick: (item: GalleryItem) => void;
   onLike: (id: string) => void;
   onDislike: (id: string) => void;
-  onFollow: (userId: string) => void;
   isLiked: boolean;
   isDisliked: boolean;
   currentUserId?: string;
@@ -39,7 +38,6 @@ export default function GalleryCard({
   onCardClick,
   onLike,
   onDislike,
-  onFollow,
   isLiked,
   isDisliked,
   currentUserId,
@@ -52,7 +50,6 @@ export default function GalleryCard({
       {/* User Info Overlay */}
       <UserOverlay
         userData={userData}
-        onFollow={onFollow}
         currentUserId={currentUserId}
       />
 

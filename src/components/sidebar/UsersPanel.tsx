@@ -1,20 +1,19 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, UserPlus, Search } from "lucide-react";
+import { X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 interface FirebaseUser {
   id: string;
   username: string;
   email: string;
   createdAt: Date;
-  followers?: string[];
-  following?: string[];
 }
 
 interface UsersPanelProps {
@@ -25,9 +24,9 @@ interface UsersPanelProps {
 export default function UsersPanel({ isOpen, onClose }: UsersPanelProps) {
   const [users, setUsers] = useState<FirebaseUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [following, setFollowing] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const { user: currentUser } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (isOpen) {
@@ -66,16 +65,9 @@ export default function UsersPanel({ isOpen, onClose }: UsersPanelProps) {
     );
   }, [users, searchQuery]);
 
-  const handleFollow = (userId: string) => {
-    setFollowing(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(userId)) {
-        newSet.delete(userId);
-      } else {
-        newSet.add(userId);
-      }
-      return newSet;
-    });
+  const handleUserClick = (userId: string) => {
+    onClose(); // Close the panel
+    router.push(`/profile?userId=${userId}`);
   };
 
   return (
@@ -142,7 +134,8 @@ export default function UsersPanel({ isOpen, onClose }: UsersPanelProps) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors"
+                    className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
+                    onClick={() => handleUserClick(user.id)}
                   >
                     <div className="flex flex-col items-center text-center space-y-3">
                       {/* Avatar */}
@@ -158,17 +151,6 @@ export default function UsersPanel({ isOpen, onClose }: UsersPanelProps) {
                         <p className="text-white/60 text-xs truncate leading-tight break-all">{user.email}</p>
                       </div>
 
-                      {/* Follow Button */}
-                      <Button
-                        onClick={() => handleFollow(user.id)}
-                        variant={following.has(user.id) ? "secondary" : "default"}
-                        size="sm"
-                        className="w-full text-xs"
-                        disabled={currentUser?.uid === user.id}
-                      >
-                        <UserPlus size={14} className="mr-1" />
-                        {following.has(user.id) ? "Following" : "Follow"}
-                      </Button>
                     </div>
                   </motion.div>
                   ))}

@@ -1,5 +1,4 @@
 "use client";
-import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface UserData {
@@ -10,11 +9,10 @@ interface UserData {
 
 interface UserOverlayProps {
   userData: UserData;
-  onFollow: (userId: string) => void;
   currentUserId?: string;
 }
 
-export default function UserOverlay({ userData, onFollow, currentUserId }: UserOverlayProps) {
+export default function UserOverlay({ userData, currentUserId }: UserOverlayProps) {
   return (
     <div className="absolute -top-20 left-0 right-0 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-y-0 translate-y-1 pointer-events-none group-hover:pointer-events-auto">
       <div className="bg-gradient-to-r from-black/95 via-gray-900/95 to-black/95 backdrop-blur-xl border border-white/20 rounded-xl mx-2 px-4 py-3 shadow-2xl">
@@ -38,20 +36,6 @@ export default function UserOverlay({ userData, onFollow, currentUserId }: UserO
             </div>
           </div>
 
-          {/* Follow Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onFollow(userData.id);
-            }}
-            className="ml-3 h-9 px-4 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-purple-200 border border-purple-500/30 hover:border-purple-400/50 rounded-lg font-medium text-sm transition-all duration-200 flex items-center space-x-2"
-            disabled={!currentUserId || currentUserId === userData.id}
-          >
-            <UserPlus className="h-4 w-4" />
-            <span>Follow</span>
-          </Button>
         </div>
       </div>
     </div>

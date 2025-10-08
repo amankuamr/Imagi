@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
-import { collection, query, where, getDocs, orderBy, doc, updateDoc, getDoc } from "firebase/firestore";
+import { useRouter, useSearchParams } from "next/navigation";
+import { collection, query, where, getDocs, orderBy, doc, updateDoc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { updateProfile } from "firebase/auth";
 import { motion } from "framer-motion";
@@ -25,9 +25,19 @@ interface EditForm {
   profileImage: string;
 }
 
+interface ProfileUser {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+}
+
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const profileUserId = searchParams.get('userId');
+  const [profileUser, setProfileUser] = useState<ProfileUser | null>(null);
   const [userImages, setUserImages] = useState<UserImage[]>([]);
   const [stats, setStats] = useState({ totalImages: 0, totalLikes: 0 });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -37,40 +47,83 @@ export default function ProfilePage() {
   const [userCreatedAt, setUserCreatedAt] = useState<Date | null>(null);
 
   useEffect(() => {
+    // Wait for auth loading to complete
+    if (loading) return;
+
     if (!user) {
       router.push('/login');
       return;
     }
 
+    const targetUserId = profileUserId || user.uid;
+    const isViewingOwnProfile = !profileUserId || profileUserId === user.uid;
+
     const fetchUserData = async () => {
       try {
-        // Check if user is admin
+        // Check if current user is admin
         const adminEmails = ['admin@imagi.com', 'your-admin-email@example.com'];
         const isUserAdmin = adminEmails.includes(user.email || '');
         setIsAdmin(isUserAdmin);
 
-        // Fetch user profile data for last edit time
-        const userDocRef = doc(db, 'users', user.uid);
+        // Fetch target user profile data
+        const userDocRef = doc(db, 'users', targetUserId);
         const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          if (userData.lastProfileEdit) {
-            setLastEditTime(userData.lastProfileEdit.toDate());
-          }
-          if (userData.createdAt) {
-            setUserCreatedAt(userData.createdAt.toDate());
-          }
+
+        if (!userDocSnap.exists()) {
+          console.error('User not found');
+          router.push('/profile');
+          return;
         }
 
-        // Check if user can edit (7 days passed or is admin)
-        const now = new Date();
-        const canEditProfile = isUserAdmin || !lastEditTime || (now.getTime() - lastEditTime.getTime()) > (7 * 24 * 60 * 60 * 1000);
-        setCanEdit(canEditProfile);
+        const userData = userDocSnap.data();
+        const finalPhotoURL = userData.photoURL || (isViewingOwnProfile ? user.photoURL || undefined : undefined);
+
+        setProfileUser({
+          uid: targetUserId,
+          email: userData.email || '',
+          displayName: userData.username || userData.email?.split('@')[0] || 'User',
+          photoURL: finalPhotoURL
+        });
+
+        if (userData.lastProfileEdit) {
+          setLastEditTime(userData.lastProfileEdit.toDate());
+        }
+        if (userData.createdAt) {
+          setUserCreatedAt(userData.createdAt.toDate());
+        }
+
+        // Check if user can edit (only if viewing own profile)
+        if (isViewingOwnProfile) {
+          const now = new Date();
+          const canEditProfile = isUserAdmin || !lastEditTime || (now.getTime() - lastEditTime.getTime()) > (7 * 24 * 60 * 60 * 1000);
+          setCanEdit(canEditProfile);
+
+          // Ensure current user's photoURL is stored in Firestore
+          console.log('Checking photoURL sync for current user');
+          console.log('Current user photoURL:', user.photoURL);
+          console.log('Firestore photoURL:', userData.photoURL);
+
+          if (user.photoURL && !userData.photoURL) {
+            console.log('Syncing photoURL to Firestore...');
+            try {
+              await updateDoc(userDocRef, {
+                photoURL: user.photoURL
+              });
+              console.log('Updated Firestore with current user photoURL');
+            } catch (error) {
+              console.warn('Failed to update photoURL in Firestore:', error);
+            }
+          } else {
+            console.log('PhotoURL already synced or not needed');
+          }
+        } else {
+          setCanEdit(false);
+        }
 
         // Fetch user's images
         const q = query(
           collection(db, "images"),
-          where("userId", "==", user.uid),
+          where("userId", "==", targetUserId),
           orderBy("uploadedAt", "desc")
         );
         const querySnapshot = await getDocs(q);
@@ -96,7 +149,7 @@ export default function ProfilePage() {
     };
 
     fetchUserData();
-  }, [user, router]);
+  }, [user, router, profileUserId, loading]);
 
   const getDaysUntilNextEdit = () => {
     if (!lastEditTime) return 0;
@@ -117,10 +170,11 @@ export default function ProfilePage() {
         photoURL: formData.profileImage || null
       });
 
-      // Update Firestore user document with last edit time
+      // Update Firestore user document with last edit time and photoURL
       const userDocRef = doc(db, 'users', user.uid);
       await updateDoc(userDocRef, {
         username: formData.displayName,
+        photoURL: formData.profileImage || null,
         lastProfileEdit: new Date()
       });
 
@@ -135,6 +189,15 @@ export default function ProfilePage() {
       alert('Failed to update profile. Please try again.');
     }
   };
+
+  // Show loading while auth is being resolved
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
 
   if (!user) return null;
 
@@ -187,7 +250,7 @@ export default function ProfilePage() {
           transition={{ duration: 0.8, delay: 0.8 }}
         >
           <ProfileHeader
-            user={user}
+            user={profileUser || user}
             canEdit={canEdit}
             isAdmin={isAdmin}
             getDaysUntilNextEdit={getDaysUntilNextEdit}
@@ -216,7 +279,7 @@ export default function ProfilePage() {
         <EditProfileModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
-          user={user}
+          user={profileUser || user}
           onSave={handleSaveProfile}
         />
       </div>

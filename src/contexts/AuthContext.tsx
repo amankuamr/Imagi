@@ -10,7 +10,7 @@ import {
   signInWithPopup,
   updateProfile
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 interface AuthContextType {
@@ -29,33 +29,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for persisted auth state in development
+    // Check for persisted auth state in development for optimistic UI
     if (process.env.NODE_ENV === 'development') {
       const persistedUser = localStorage.getItem('firebase-auth-user');
       if (persistedUser) {
         try {
           const userData = JSON.parse(persistedUser);
-          setUser(userData);
-          setLoading(false);
+          setUser(userData); // Set optimistic user state
         } catch (error) {
           console.warn('Failed to parse persisted auth user:', error);
+          localStorage.removeItem('firebase-auth-user');
         }
       }
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
       setLoading(false);
 
       // Persist auth state in development
       if (process.env.NODE_ENV === 'development') {
-        if (user) {
+        if (firebaseUser) {
           localStorage.setItem('firebase-auth-user', JSON.stringify({
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-            emailVerified: user.emailVerified
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            emailVerified: firebaseUser.emailVerified
           }));
         } else {
           localStorage.removeItem('firebase-auth-user');
@@ -88,9 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         username,
         email,
-        createdAt: new Date(),
-        followers: [],
-        following: []
+        createdAt: new Date()
       });
     } catch (error) {
       console.error('Sign up error:', error);
@@ -104,20 +102,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Check if user profile exists in Firestore, if not create it
+      // Store/update user profile in Firestore with Google photo
       const userDocRef = doc(db, 'users', user.uid);
-      const userDocSnap = await getDoc(userDocRef);
+      console.log('Google sign-in: storing user data for', user.uid);
+      console.log('Google photoURL:', user.photoURL);
 
-      if (!userDocSnap.exists()) {
-        // Create user profile with Google display name as username
-        await setDoc(userDocRef, {
-          username: user.displayName || user.email?.split('@')[0] || 'User',
-          email: user.email,
-          createdAt: new Date(),
-          followers: [],
-          following: []
-        });
-      }
+      await setDoc(userDocRef, {
+        username: user.displayName || user.email?.split('@')[0] || 'User',
+        email: user.email,
+        photoURL: user.photoURL || null, // Always store/update Google profile photo
+        createdAt: new Date()
+      }, { merge: true }); // Merge with existing data
+
+      console.log('Google sign-in: Firestore updated successfully');
     } catch (error) {
       console.error('Google sign in error:', error);
       throw error;
