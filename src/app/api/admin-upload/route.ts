@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
       likedBy: [],
       dislikedBy: [],
       userId: userId, // Use real admin user ID
+      uploadedBy: userEmail, // Store uploader's email
     });
 
     return NextResponse.json({

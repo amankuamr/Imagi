@@ -59,6 +59,7 @@ export default function AdminRequests() {
           public_id: request.public_id,
           uploadedAt: request.createdAt,
           userId: request.userId,
+          uploadedBy: request.userEmail, // Store uploader's email
           likes: 0,
           dislikes: 0,
           likedBy: [],

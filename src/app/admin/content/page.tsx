@@ -1,0 +1,367 @@
+"use client";
+import { useState, useEffect } from "react";
+import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Trash2, Edit, Eye, Search } from "lucide-react";
+
+interface ImageData {
+  id: string;
+  url: string;
+  game: string;
+  genre: string;
+  uploadedAt: Date;
+  uploadedBy: string;
+  likes: number;
+  dislikes: number;
+  likedBy: string[];
+  dislikedBy: string[];
+}
+
+export default function AdminContent() {
+  const [images, setImages] = useState<ImageData[]>([]);
+  const [filteredImages, setFilteredImages] = useState<ImageData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [gameFilter, setGameFilter] = useState("all");
+  const [genreFilter, setGenreFilter] = useState("all");
+  const [editingImage, setEditingImage] = useState<ImageData | null>(null);
+  const [editForm, setEditForm] = useState({ game: "", genre: "" });
+  const [availableGames, setAvailableGames] = useState<string[]>([]);
+  const [availableGenres, setAvailableGenres] = useState<string[]>([]);
+  const [showFullImage, setShowFullImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchImages();
+    fetchConfig();
+  }, []);
+
+  useEffect(() => {
+    filterImages();
+  }, [images, searchQuery, gameFilter, genreFilter]);
+
+  const fetchImages = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "images"));
+      const imagesData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        uploadedAt: doc.data().uploadedAt?.toDate?.() || new Date()
+      })) as ImageData[];
+
+      // Sort by newest first
+      imagesData.sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
+
+      setImages(imagesData);
+    } catch (error) {
+      console.error('Error fetching images:', error);
+      alert("Failed to load images");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchConfig = async () => {
+    try {
+      const configDoc = await getDocs(collection(db, 'config'));
+      if (!configDoc.empty) {
+        const configData = configDoc.docs[0].data();
+        setAvailableGames(configData.games || []);
+        setAvailableGenres(configData.genres || []);
+      }
+    } catch (error) {
+      console.error('Error fetching config:', error);
+    }
+  };
+
+  const filterImages = () => {
+    let filtered = images;
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(img =>
+        (img.game || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (img.genre || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (img.uploadedBy || '').toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Game filter
+    if (gameFilter !== "all") {
+      filtered = filtered.filter(img => img.game === gameFilter);
+    }
+
+    // Genre filter
+    if (genreFilter !== "all") {
+      filtered = filtered.filter(img => img.genre === genreFilter);
+    }
+
+    setFilteredImages(filtered);
+  };
+
+  const handleEdit = (image: ImageData) => {
+    setEditingImage(image);
+    setEditForm({ game: image.game, genre: image.genre });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingImage) return;
+
+    try {
+      await updateDoc(doc(db, "images", editingImage.id), {
+        game: editForm.game,
+        genre: editForm.genre
+      });
+
+      // Update local state
+      setImages(images.map(img =>
+        img.id === editingImage.id
+          ? { ...img, game: editForm.game, genre: editForm.genre }
+          : img
+      ));
+
+      setEditingImage(null);
+      alert("Image updated successfully");
+    } catch (error) {
+      console.error('Error updating image:', error);
+      alert("Failed to update image");
+    }
+  };
+
+  const handleDelete = async (imageId: string) => {
+    if (!confirm("Are you sure you want to delete this image?")) return;
+
+    try {
+      await deleteDoc(doc(db, "images", imageId));
+
+      // Update local state
+      setImages(images.filter(img => img.id !== imageId));
+
+      alert("Image deleted successfully");
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      alert("Failed to delete image");
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-16 text-white">Loading content...</div>;
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-white">Content Management</h1>
+        <div className="text-sm text-gray-400">
+          Total Images: {images.length}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search by game, genre, or uploader..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-gray-700 text-white border-gray-600"
+            />
+          </div>
+
+          <select
+            value={gameFilter}
+            onChange={(e) => setGameFilter(e.target.value)}
+            className="bg-gray-700 text-white border border-gray-600 rounded px-3 py-2"
+          >
+            <option value="all">All Games</option>
+            {availableGames.map(game => (
+              <option key={game} value={game}>{game}</option>
+            ))}
+          </select>
+
+          <select
+            value={genreFilter}
+            onChange={(e) => setGenreFilter(e.target.value)}
+            className="bg-gray-700 text-white border border-gray-600 rounded px-3 py-2"
+          >
+            <option value="all">All Genres</option>
+            {availableGenres.map(genre => (
+              <option key={genre} value={genre}>{genre}</option>
+            ))}
+          </select>
+
+          <Button
+            onClick={() => {
+              setSearchQuery("");
+              setGameFilter("all");
+              setGenreFilter("all");
+            }}
+            variant="outline"
+            className="bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
+          >
+            Clear Filters
+          </Button>
+        </div>
+      </div>
+
+      {/* Full Image Modal */}
+      {showFullImage && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowFullImage(null)}>
+          <div className="max-w-4xl max-h-[80vh] relative">
+            <img
+              src={showFullImage}
+              alt="Full size"
+              className="w-full h-auto max-h-[70vh] object-contain"
+            />
+            <button
+              onClick={() => setShowFullImage(null)}
+              className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingImage && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 max-w-md w-full">
+            <h3 className="text-lg font-bold text-white mb-4">Edit Image Details</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-white mb-2 block">Game</label>
+                <select
+                  value={editForm.game}
+                  onChange={(e) => setEditForm({...editForm, game: e.target.value})}
+                  className="w-full bg-gray-700 text-white border border-gray-600 rounded px-3 py-2"
+                >
+                  {availableGames.map(game => (
+                    <option key={game} value={game}>{game}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-white mb-2 block">Genre</label>
+                <select
+                  value={editForm.genre}
+                  onChange={(e) => setEditForm({...editForm, genre: e.target.value})}
+                  className="w-full bg-gray-700 text-white border border-gray-600 rounded px-3 py-2"
+                >
+                  {availableGenres.map(genre => (
+                    <option key={genre} value={genre}>{genre}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleSaveEdit} className="flex-1">
+                  Save Changes
+                </Button>
+                <Button
+                  onClick={() => setEditingImage(null)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Images Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredImages.map((image) => (
+          <div key={image.id} className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+            {/* Image */}
+            <div className="aspect-square relative">
+              <img
+                src={image.url}
+                alt={`${image.game} screenshot`}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                <Button
+                  onClick={() => setShowFullImage(image.url)}
+                  variant="secondary"
+                  size="sm"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  View Full
+                </Button>
+              </div>
+            </div>
+
+            {/* Details */}
+            <div className="p-4">
+              <div className="space-y-2 mb-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Game:</span>
+                  <span className="text-sm font-medium text-white">{image.game}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Genre:</span>
+                  <span className="text-sm font-medium text-white">{image.genre}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Uploaded:</span>
+                  <span className="text-sm font-medium text-white">
+                    {image.uploadedAt.toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Uploader:</span>
+                  <span className="text-sm font-medium text-white truncate ml-2">
+                    {image.uploadedBy || 'Unknown'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Votes:</span>
+                  <span className="text-sm font-medium text-white">
+                    👍 {image.likes || 0} / 👎 {image.dislikes || 0}
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleEdit(image)}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30"
+                >
+                  <Edit className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+
+                <Button
+                  onClick={() => handleDelete(image.id)}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 bg-red-600/20 border-red-600/50 text-red-400 hover:bg-red-600/30"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {filteredImages.length === 0 && (
+        <div className="text-center py-16">
+          <p className="text-gray-400 text-lg">
+            {images.length === 0 ? "No images found." : "No images match your filters."}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
