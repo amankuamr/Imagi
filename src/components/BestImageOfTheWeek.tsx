@@ -106,9 +106,6 @@ export default function BestImageOfTheWeek() {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center py-20 px-6">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/30 backdrop-blur-sm"></div>
-      
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto w-full">
         {/* Section Header */}

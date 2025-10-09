@@ -94,7 +94,7 @@ export default function Home() {
         />
       </div>
 
-      {/* Sticky Background Blur Overlay */}
+      {/* Unified Background Overlay */}
       <motion.div
         className="fixed inset-0 z-10 pointer-events-none"
         initial={{ opacity: 0 }}
@@ -102,7 +102,12 @@ export default function Home() {
         transition={{ duration: 0.3, ease: "easeOut" }}
         style={{ willChange: "opacity" }}
       >
-        <div className="absolute inset-0 bg-black/20 backdrop-blur-md" />
+        {/* Primary gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-purple-900/20 to-black/40 backdrop-blur-md" />
+
+        {/* Additional depth layers */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-black/5" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-900/5 to-transparent" />
       </motion.div>
 
       {/* Fixed Hero Section */}

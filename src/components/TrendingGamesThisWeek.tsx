@@ -25,7 +25,16 @@ export default function TrendingGamesThisWeek() {
     const fetchTrendingGames = async () => {
       try {
         const now = new Date();
-        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        // Calculate current week boundaries (Sunday to Saturday)
+        const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - currentDay); // Go back to Sunday
+        startOfWeek.setHours(0, 0, 0, 0); // Start of Sunday
+
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6); // Saturday
+        endOfWeek.setHours(23, 59, 59, 999); // End of Saturday
 
         // Get all images and filter client-side to avoid composite index requirements
         const allImagesQuery = query(collection(db, "images"));
@@ -36,11 +45,10 @@ export default function TrendingGamesThisWeek() {
           uploadedAt: doc.data().uploadedAt?.toDate?.() || new Date()
         }));
 
-        // Filter for this week and last week client-side
-        const weeklyUploads = allImages.filter(img => img.uploadedAt >= oneWeekAgo);
-        const lastWeekUploads = allImages.filter(img => {
-          const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-          return img.uploadedAt >= twoWeeksAgo && img.uploadedAt < oneWeekAgo;
+        // Filter for current week (Sunday to Saturday)
+        const weeklyUploads = allImages.filter(img => {
+          const uploadDate = img.uploadedAt;
+          return uploadDate >= startOfWeek && uploadDate <= endOfWeek;
         });
 
         // Count uploads per game this week
@@ -49,19 +57,9 @@ export default function TrendingGamesThisWeek() {
           gameCounts[upload.game] = (gameCounts[upload.game] || 0) + 1;
         });
 
-        // Count uploads per game last week
-        const lastWeekCounts: { [key: string]: number } = {};
-        lastWeekUploads.forEach(upload => {
-          lastWeekCounts[upload.game] = (lastWeekCounts[upload.game] || 0) + 1;
-        });
-
-        // Calculate trending games with growth percentage
+        // Calculate trending games (current week only)
         const trendingDataPromises = Object.entries(gameCounts)
-          .map(async ([gameId, thisWeekCount]) => {
-            const lastWeekCount = lastWeekCounts[gameId] || 0;
-            const growthPercent = lastWeekCount > 0
-              ? Math.round(((thisWeekCount - lastWeekCount) / lastWeekCount) * 100)
-              : 0;
+          .map(async ([gameId, weeklyCount]) => {
 
                 // Get a sample image for this game (simpler query to avoid index requirements)
                 let sampleImage: string | undefined;
@@ -115,8 +113,8 @@ export default function TrendingGamesThisWeek() {
             return {
               gameId,
               gameName: getGameDisplayName(gameId),
-              uploadCount: thisWeekCount,
-              growthPercent,
+              uploadCount: weeklyCount,
+              growthPercent: 0, // No growth calculation for weekly view
               color: getGameColor(gameId),
               icon: getGameIcon(gameId),
               sampleImage
@@ -257,32 +255,6 @@ export default function TrendingGamesThisWeek() {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center py-20 px-6 overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-purple-900/20 to-black/40 backdrop-blur-sm"></div>
-
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0">
-        {[...Array(8)].map((_, i) => (
-          <motion.div
-            key={i}
-            animate={{
-              y: [0, -25, 0],
-              opacity: [0.1, 0.3, 0.1]
-            }}
-            transition={{
-              duration: 8 + i * 2,
-              repeat: Infinity,
-              delay: i * 0.5,
-              ease: "easeInOut"
-            }}
-            className="absolute w-3 h-3 bg-gradient-to-r from-cyan-400/20 to-purple-400/20 rounded-full blur-sm"
-            style={{
-              left: `${10 + (i * 10)}%`,
-              top: `${15 + (i * 8)}%`,
-            }}
-          />
-        ))}
-      </div>
 
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto w-full">
@@ -336,8 +308,7 @@ export default function TrendingGamesThisWeek() {
               transition={{ duration: 0.6, delay: index * 0.1 }}
               viewport={{ once: true }}
               whileHover={{
-                y: -8,
-                scale: 1.05,
+                y: -4,
                 transition: { duration: 0.2 }
               }}
               onClick={() => handleGameClick(game.gameId)}
@@ -402,25 +373,10 @@ export default function TrendingGamesThisWeek() {
                         <span>{game.uploadCount}</span>
                       </div>
 
-                      {game.growthPercent !== 0 && (
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className={`w-4 h-4 ${game.growthPercent > 0 ? 'text-green-400' : 'text-red-400'}`} />
-                          <span className={`font-bold ${game.growthPercent > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {game.growthPercent > 0 ? '+' : ''}{game.growthPercent}%
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Hover Glow Effect */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  whileHover={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className={`absolute inset-0 rounded-3xl border-2 shadow-2xl bg-gradient-to-r ${game.color} opacity-20 blur-xl`}
-                />
 
                 {/* Trending Badge */}
                 {index < 3 && (
@@ -435,12 +391,12 @@ export default function TrendingGamesThisWeek() {
                   </motion.div>
                 )}
 
-                {/* Shine Effect */}
+                {/* Subtle Shine Effect */}
                 <motion.div
                   initial={{ x: '-150%', opacity: 0 }}
-                  whileHover={{ x: '150%', opacity: [0, 1, 0] }}
-                  transition={{ duration: 1, ease: "easeInOut" }}
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 pointer-events-none"
+                  whileHover={{ x: '150%', opacity: [0, 0.3, 0] }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 pointer-events-none"
                 />
               </div>
             </motion.div>

@@ -1,7 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
@@ -14,58 +14,62 @@ interface GameCategory {
   trending?: boolean;
 }
 
-// Popular games data - you can expand this list
-const POPULAR_GAMES: Omit<GameCategory, 'uploadCount'>[] = [
-  {
-    id: "valorant",
+// Static game data with icons and colors for known games
+const GAME_DATA: Record<string, Omit<GameCategory, 'id' | 'uploadCount'>> = {
+  "valorant": {
     name: "Valorant",
     icon: "/game-icons/valorant.png",
     color: "from-red-500 to-orange-500",
     trending: true
   },
-  {
-    id: "fortnite",
+  "fortnite": {
     name: "Fortnite",
     icon: "/game-icons/fortnite.png",
     color: "from-blue-500 to-purple-500"
   },
-  {
-    id: "apex-legends",
+  "apex-legends": {
     name: "Apex Legends",
     icon: "/game-icons/apex.png",
     color: "from-yellow-500 to-red-500",
     trending: true
   },
-  {
-    id: "cs2",
+  "cs2": {
     name: "CS2",
     icon: "/game-icons/cs2.png",
     color: "from-orange-500 to-yellow-500"
   },
-  {
-    id: "overwatch",
+  "overwatch": {
     name: "Overwatch 2",
     icon: "/game-icons/overwatch.png",
     color: "from-cyan-500 to-blue-500"
   },
-  {
-    id: "league-of-legends",
+  "league-of-legends": {
     name: "League of Legends",
     icon: "/game-icons/lol.png",
     color: "from-purple-500 to-pink-500"
   },
-  {
-    id: "rocket-league",
+  "rocket-league": {
     name: "Rocket League",
     icon: "/game-icons/rocket-league.png",
     color: "from-blue-600 to-cyan-500"
   },
-  {
-    id: "minecraft",
+  "minecraft": {
     name: "Minecraft",
     icon: "/game-icons/minecraft.png",
     color: "from-green-500 to-emerald-500"
   }
+};
+
+// Default colors for unknown games
+const DEFAULT_COLORS = [
+  "from-cyan-500 to-blue-500",
+  "from-purple-500 to-pink-500",
+  "from-green-500 to-emerald-500",
+  "from-yellow-500 to-orange-500",
+  "from-red-500 to-pink-500",
+  "from-blue-500 to-indigo-500",
+  "from-indigo-500 to-purple-500",
+  "from-pink-500 to-rose-500"
 ];
 
 export default function GameCategoriesGrid() {
@@ -76,35 +80,71 @@ export default function GameCategoriesGrid() {
   useEffect(() => {
     const fetchGameStats = async () => {
       try {
-        const gamesWithStats = await Promise.all(
-          POPULAR_GAMES.map(async (game) => {
-            try {
-              // Query images where game tag matches (assuming you add game tags to images)
-              const q = query(
-                collection(db, "images"),
-                where("game", "==", game.id)
-              );
-              const querySnapshot = await getDocs(q);
-              const uploadCount = querySnapshot.size;
+        // Fetch all images to count uploads per game
+        const imagesQuery = collection(db, "images");
+        const imagesSnapshot = await getDocs(imagesQuery);
+
+        // Count uploads per game and track recent uploads (last 1 hour)
+        const gameCounts: Record<string, number> = {};
+        const recentUploads: Record<string, number> = {};
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
+
+        imagesSnapshot.forEach((doc) => {
+          const data = doc.data();
+          const game = data.game;
+          const uploadedAt = data.uploadedAt?.toDate?.();
+
+          if (game) {
+            // Count total uploads
+            gameCounts[game] = (gameCounts[game] || 0) + 1;
+
+            // Count recent uploads (within last hour)
+            if (uploadedAt && uploadedAt >= oneHourAgo) {
+              recentUploads[game] = (recentUploads[game] || 0) + 1;
+            }
+          }
+        });
+
+        // Fetch configured games list
+        const configDoc = await getDoc(doc(db, 'config', 'settings'));
+        const configuredGames: string[] = configDoc.exists() ? configDoc.data()?.games || [] : [];
+
+        // Create game objects with upload counts, sorted by count descending
+        const gamesWithStats: GameCategory[] = Object.entries(gameCounts)
+          .map(([gameId, uploadCount], index) => {
+            const gameData = GAME_DATA[gameId.toLowerCase().replace(/\s+/g, '-')] || GAME_DATA[gameId];
+            const recentCount = recentUploads[gameId] || 0;
+            const isTrending = recentCount >= 5; // Trending if >= 5 uploads in last hour
+
+            if (gameData) {
+              // Known game with icon data
+              return {
+                id: gameId,
+                ...gameData,
+                uploadCount,
+                trending: isTrending
+              };
+            } else {
+              // Unknown game - use configured name or gameId, with fallback styling
+              const gameName = configuredGames.find((g: string) => g.toLowerCase().replace(/\s+/g, '-') === gameId.toLowerCase().replace(/\s+/g, '-')) || gameId;
+              const colorIndex = index % DEFAULT_COLORS.length;
 
               return {
-                ...game,
-                uploadCount
-              };
-            } catch (error) {
-              console.warn(`Error fetching stats for ${game.name}:`, error);
-              return {
-                ...game,
-                uploadCount: 0
+                id: gameId,
+                name: gameName,
+                icon: "", // Will use initials
+                color: DEFAULT_COLORS[colorIndex],
+                uploadCount,
+                trending: isTrending
               };
             }
           })
-        );
+          .sort((a, b) => b.uploadCount - a.uploadCount); // Sort by upload count descending
 
         setGames(gamesWithStats);
       } catch (error) {
         console.error('Error fetching game stats:', error);
-        setGames(POPULAR_GAMES.map(game => ({ ...game, uploadCount: 0 })));
+        setGames([]);
       } finally {
         setLoading(false);
       }
@@ -139,9 +179,6 @@ export default function GameCategoriesGrid() {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center py-20 px-6 overflow-hidden">
-      {/* Enhanced Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-purple-900/10 to-black/30 backdrop-blur-md"></div>
-
       {/* Optimized Background Particles - Reduced from 12 to 6 */}
       <div className="absolute inset-0">
         {[...Array(6)].map((_, i) => (

@@ -170,8 +170,6 @@ export default function WeeklyVoting() {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center py-20 px-6">
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-md"></div>
-
       <div className="relative z-10 max-w-7xl mx-auto w-full">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
