@@ -296,7 +296,7 @@ export default function CommunityStats() {
             transition={{ duration: 0.8, delay: 0.4 }}
             viewport={{ once: true }}
           >
-            Dive deep into our gaming community's growth, discover trending games, and see who's leading the pack in sharing epic moments
+            Dive deep into our gaming community&apos;s growth, discover trending games, and see who&apos;s leading the pack in sharing epic moments
           </motion.p>
 
           {/* Decorative elements */}
