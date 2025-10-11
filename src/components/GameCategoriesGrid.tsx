@@ -105,9 +105,10 @@ export default function GameCategoriesGrid() {
           }
         });
 
-        // Fetch configured games list
+        // Fetch configured games list and logos
         const configDoc = await getDoc(doc(db, 'config', 'settings'));
         const configuredGames: string[] = configDoc.exists() ? configDoc.data()?.games || [] : [];
+        const gameLogos: Record<string, string> = configDoc.exists() ? configDoc.data()?.gameLogos || {} : {};
 
         // Create game objects with upload counts, sorted by count descending
         const gamesWithStats: GameCategory[] = Object.entries(gameCounts)
@@ -115,24 +116,26 @@ export default function GameCategoriesGrid() {
             const gameData = GAME_DATA[gameId.toLowerCase().replace(/\s+/g, '-')] || GAME_DATA[gameId];
             const recentCount = recentUploads[gameId] || 0;
             const isTrending = recentCount >= 5; // Trending if >= 5 uploads in last hour
+            const customLogo = gameLogos[gameId];
 
             if (gameData) {
-              // Known game with icon data
+              // Known game with icon data, but override with custom logo if available
               return {
                 id: gameId,
                 ...gameData,
+                icon: customLogo || gameData.icon,
                 uploadCount,
                 trending: isTrending
               };
             } else {
-              // Unknown game - use configured name or gameId, with fallback styling
+              // Unknown game - use configured name or gameId, with custom logo or fallback styling
               const gameName = configuredGames.find((g: string) => g.toLowerCase().replace(/\s+/g, '-') === gameId.toLowerCase().replace(/\s+/g, '-')) || gameId;
               const colorIndex = index % DEFAULT_COLORS.length;
 
               return {
                 id: gameId,
                 name: gameName,
-                icon: "", // Will use initials
+                icon: customLogo || "", // Use custom logo or initials
                 color: DEFAULT_COLORS[colorIndex],
                 uploadCount,
                 trending: isTrending
@@ -268,6 +271,15 @@ export default function GameCategoriesGrid() {
             >
               {/* Game Card with Enhanced Effects */}
               <div className="relative aspect-square rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-xl border border-white/10">
+                {/* Custom Logo Background */}
+                {game.icon && (
+                  <img
+                    src={game.icon}
+                    alt={game.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
+
                 {/* Static Background Pattern - Removed animation for performance */}
                 <div
                   className="absolute inset-0 opacity-20"
@@ -278,30 +290,32 @@ export default function GameCategoriesGrid() {
                   }}
                 />
 
-                {/* Game Icon with Enhanced Styling */}
-                <div className="absolute inset-0 flex items-center justify-center p-6">
-                  <motion.div
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ duration: 0.3 }}
-                    className={`w-24 h-24 rounded-3xl bg-gradient-to-r ${game.color} flex items-center justify-center shadow-2xl border-4 border-white/30 relative overflow-hidden`}
-                  >
-                    {/* Inner Glow */}
-                    <div className={`absolute inset-2 rounded-2xl bg-gradient-to-r ${game.color} opacity-50 blur-sm`}></div>
-
-                    <span className="text-4xl font-black text-white drop-shadow-2xl relative z-10">
-                      {game.name.split(' ')[0].charAt(0)}
-                      {game.name.split(' ')[1]?.charAt(0) || ''}
-                    </span>
-
-                    {/* Icon Shine Effect */}
+                {/* Fallback Icon for games without custom logo */}
+                {!game.icon && (
+                  <div className="absolute inset-0 flex items-center justify-center p-6">
                     <motion.div
-                      initial={{ x: '-100%', opacity: 0 }}
-                      whileHover={{ x: '100%', opacity: [0, 0.8, 0] }}
-                      transition={{ duration: 0.6 }}
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-3xl"
-                    />
-                  </motion.div>
-                </div>
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      transition={{ duration: 0.3 }}
+                      className={`w-24 h-24 rounded-3xl bg-gradient-to-r ${game.color} flex items-center justify-center shadow-2xl border-4 border-white/30 relative overflow-hidden`}
+                    >
+                      {/* Inner Glow */}
+                      <div className={`absolute inset-2 rounded-2xl bg-gradient-to-r ${game.color} opacity-50 blur-sm`}></div>
+
+                      <span className="text-4xl font-black text-white drop-shadow-2xl relative z-10">
+                        {game.name.split(' ')[0].charAt(0)}
+                        {game.name.split(' ')[1]?.charAt(0) || ''}
+                      </span>
+
+                      {/* Icon Shine Effect */}
+                      <motion.div
+                        initial={{ x: '-100%', opacity: 0 }}
+                        whileHover={{ x: '100%', opacity: [0, 0.8, 0] }}
+                        transition={{ duration: 0.6 }}
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-3xl"
+                      />
+                    </motion.div>
+                  </div>
+                )}
 
                 {/* Enhanced Content Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent">

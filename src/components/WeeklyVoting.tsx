@@ -193,103 +193,237 @@ export default function WeeklyVoting() {
           {images.map((image, index) => (
             <motion.div
               key={image.id}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.2 }}
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.8, delay: index * 0.15, ease: "easeOut" }}
               viewport={{ once: true }}
-              className="group relative aspect-[4/5] rounded-3xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-white/30 transition-all duration-300"
+              whileHover={{
+                y: -10,
+                scale: 1.02,
+                rotateY: 5
+              }}
+              onHoverStart={() => setHoveredIndex(index)}
+              onHoverEnd={() => setHoveredIndex(null)}
+              className="group relative aspect-[4/5] rounded-3xl overflow-hidden cursor-pointer transform-gpu"
+              style={{ perspective: '1000px' }}
             >
+              {/* Background Image with Enhanced Effects */}
               <div className="absolute inset-0">
                 <motion.div
-                  className="w-full h-full"
+                  className="w-full h-full relative"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ duration: 0.6 }}
                 >
                   <img
                     src={image.url}
                     alt={image.title}
                     className="w-full h-full object-cover"
                   />
+
+                  {/* Image Overlay Effects */}
+                  <motion.div
+                    initial={{ opacity: 0.3 }}
+                    whileHover={{ opacity: 0.7 }}
+                    transition={{ duration: 0.4 }}
+                    className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"
+                  />
+
+                  {/* Additional Bottom Gradient for Content Visibility */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    whileHover={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/40 via-black/20 to-transparent"
+                  />
+
+                  {/* Shine Effect */}
+                  <motion.div
+                    initial={{ x: '-150%', opacity: 0 }}
+                    whileHover={{ x: '150%', opacity: [0, 1, 0] }}
+                    transition={{ duration: 1.2, ease: "easeInOut" }}
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  />
                 </motion.div>
               </div>
 
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileHover={{ opacity: 1 }}
-                transition={{ duration: 0.4 }}
-                className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"
-              />
-
-              <motion.div
-                animate={{
-                  opacity: hoveredIndex === index ? 1 : 0,
-                  y: hoveredIndex === index ? 0 : 20
-                }}
-                transition={{ duration: 0.4, delay: hoveredIndex === index ? 0.1 : 0 }}
-                className="absolute top-6 left-6 right-6 z-20"
-              >
-                <h3 className="text-2xl md:text-3xl font-bold text-white drop-shadow-2xl">
-                  {image.title}
-                </h3>
-              </motion.div>
-
-              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex items-center gap-4">
-                <motion.button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!votingStates[image.id]) {
-                      handleVote(image.id, 'like');
-                    }
+              {/* Content Overlay */}
+              <div className="absolute inset-0 z-10">
+                {/* Title Section */}
+                <motion.div
+                  animate={{
+                    opacity: hoveredIndex === index ? 1 : 0,
+                    y: hoveredIndex === index ? 0 : -20
                   }}
-                  disabled={votingStates[image.id]}
-                  className={`p-3 rounded-full backdrop-blur-lg border-2 shadow-lg transition-all duration-300 ${hasUserLiked(image)
-                    ? 'bg-green-500/30 text-green-300 border-green-400/60 shadow-green-500/30'
-                    : 'bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50'
-                  }`}
+                  transition={{ duration: 0.4, delay: hoveredIndex === index ? 0.1 : 0 }}
+                  className="absolute top-6 left-6 right-6"
                 >
-                  <ThumbsUp className="w-6 h-6" fill={hasUserLiked(image) ? "currentColor" : "none"} />
-                </motion.button>
+                  <h3 className="text-2xl md:text-3xl font-bold text-white drop-shadow-2xl leading-tight">
+                    {image.title}
+                  </h3>
+                  <div className="w-16 h-1 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full mt-3"></div>
+                </motion.div>
 
-                <motion.span
-                  key={`likes-${image.id}`}
-                  initial={{ scale: 1 }}
-                  animate={{ scale: [1, 1.3, 1] }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                  className="text-white font-bold text-lg min-w-[2rem] text-center"
-                >
-                  {image.likes}
-                </motion.span>
+                {/* Voting Section */}
+                <div className="absolute bottom-6 left-6 right-6">
+                  <div className="flex items-center justify-between">
+                    {/* Like Button */}
+                    <motion.div
+                      className="flex items-center space-x-3"
+                      whileHover={{ scale: 1.05 }}
+                    >
+                      <motion.button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!votingStates[image.id]) {
+                            handleVote(image.id, 'like');
+                          }
+                        }}
+                        disabled={votingStates[image.id]}
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        whileTap={{ scale: 0.9 }}
+                        className={`relative p-4 rounded-2xl backdrop-blur-xl border-2 shadow-2xl transition-all duration-300 overflow-hidden ${
+                          hasUserLiked(image)
+                            ? 'bg-gradient-to-r from-green-500/40 to-emerald-500/40 text-green-300 border-green-400/60 shadow-green-500/40'
+                            : 'bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 hover:shadow-white/20'
+                        }`}
+                      >
+                        {/* Button Glow */}
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          whileHover={{ opacity: 1 }}
+                          className={`absolute inset-0 rounded-2xl ${
+                            hasUserLiked(image)
+                              ? 'bg-gradient-to-r from-green-400/30 to-emerald-400/30'
+                              : 'bg-gradient-to-r from-white/20 to-white/10'
+                          } blur-xl`}
+                        />
 
-                <motion.button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!votingStates[image.id]) {
-                      handleVote(image.id, 'dislike');
-                    }
-                  }}
-                  disabled={votingStates[image.id]}
-                  className={`p-3 rounded-full backdrop-blur-lg border-2 shadow-lg transition-all duration-300 ${hasUserDisliked(image)
-                    ? 'bg-red-500/30 text-red-300 border-red-400/60 shadow-red-500/30'
-                    : 'bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50'
-                  }`}
-                >
-                  <ThumbsDown className="w-6 h-6" fill={hasUserDisliked(image) ? "currentColor" : "none"} />
-                </motion.button>
+                        <ThumbsUp
+                          className="w-6 h-6 relative z-10"
+                          fill={hasUserLiked(image) ? "currentColor" : "none"}
+                        />
 
-                <motion.span
-                  key={`dislikes-${image.id}`}
-                  initial={{ scale: 1 }}
-                  animate={{ scale: [1, 1.3, 1] }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                  className="text-white font-bold text-lg min-w-[2rem] text-center"
-                >
-                  {image.dislikes}
-                </motion.span>
+                        {/* Pulse Effect for Active Vote */}
+                        {hasUserLiked(image) && (
+                          <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className="absolute inset-0 rounded-2xl border-2 border-green-400/50"
+                          />
+                        )}
+                      </motion.button>
+
+                      <motion.div
+                        key={`likes-${image.id}`}
+                        initial={{ scale: 1 }}
+                        animate={{
+                          scale: votingStates[image.id] && !hasUserLiked(image) ? [1, 1.4, 1] : 1,
+                          color: hasUserLiked(image) ? '#10b981' : '#ffffff'
+                        }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        className="text-white font-bold text-xl min-w-[2.5rem] text-center bg-black/40 px-3 py-1 rounded-xl backdrop-blur-sm"
+                      >
+                        {image.likes}
+                      </motion.div>
+                    </motion.div>
+
+                    {/* Dislike Button */}
+                    <motion.div
+                      className="flex items-center space-x-3"
+                      whileHover={{ scale: 1.05 }}
+                    >
+                      <motion.div
+                        key={`dislikes-${image.id}`}
+                        initial={{ scale: 1 }}
+                        animate={{
+                          scale: votingStates[image.id] && !hasUserDisliked(image) ? [1, 1.4, 1] : 1,
+                          color: hasUserDisliked(image) ? '#ef4444' : '#ffffff'
+                        }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        className="text-white font-bold text-xl min-w-[2.5rem] text-center bg-black/40 px-3 py-1 rounded-xl backdrop-blur-sm"
+                      >
+                        {image.dislikes}
+                      </motion.div>
+
+                      <motion.button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!votingStates[image.id]) {
+                            handleVote(image.id, 'dislike');
+                          }
+                        }}
+                        disabled={votingStates[image.id]}
+                        whileHover={{ scale: 1.1, rotate: -5 }}
+                        whileTap={{ scale: 0.9 }}
+                        className={`relative p-4 rounded-2xl backdrop-blur-xl border-2 shadow-2xl transition-all duration-300 overflow-hidden ${
+                          hasUserDisliked(image)
+                            ? 'bg-gradient-to-r from-red-500/40 to-pink-500/40 text-red-300 border-red-400/60 shadow-red-500/40'
+                            : 'bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 hover:shadow-white/20'
+                        }`}
+                      >
+                        {/* Button Glow */}
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          whileHover={{ opacity: 1 }}
+                          className={`absolute inset-0 rounded-2xl ${
+                            hasUserDisliked(image)
+                              ? 'bg-gradient-to-r from-red-400/30 to-pink-400/30'
+                              : 'bg-gradient-to-r from-white/20 to-white/10'
+                          } blur-xl`}
+                        />
+
+                        <ThumbsDown
+                          className="w-6 h-6 relative z-10"
+                          fill={hasUserDisliked(image) ? "currentColor" : "none"}
+                        />
+
+                        {/* Pulse Effect for Active Vote */}
+                        {hasUserDisliked(image) && (
+                          <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className="absolute inset-0 rounded-2xl border-2 border-red-400/50"
+                          />
+                        )}
+                      </motion.button>
+                    </motion.div>
+                  </div>
+
+                  {/* Vote Status Indicator */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{
+                      opacity: (hasUserLiked(image) || hasUserDisliked(image)) ? 1 : 0,
+                      y: (hasUserLiked(image) || hasUserDisliked(image)) ? 0 : 10
+                    }}
+                    transition={{ duration: 0.3 }}
+                    className="mt-4 text-center"
+                  >
+                    <span className={`text-sm font-medium px-3 py-1 rounded-full backdrop-blur-sm ${
+                      hasUserLiked(image)
+                        ? 'bg-green-500/20 text-green-300 border border-green-400/30'
+                        : 'bg-red-500/20 text-red-300 border border-red-400/30'
+                    }`}>
+                      {hasUserLiked(image) ? '👍 You liked this' : '👎 You disliked this'}
+                    </span>
+                  </motion.div>
+                </div>
               </div>
 
+              {/* Enhanced Border Effects */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileHover={{ opacity: 1, scale: 1.05 }}
+                transition={{ duration: 0.4 }}
+                className="absolute inset-0 rounded-3xl border-2 border-white/30 pointer-events-none"
+              />
+
+              {/* Multi-layer Glow Effect */}
               <motion.div
                 initial={{ opacity: 0 }}
                 whileHover={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-                className="absolute inset-0 rounded-3xl border-2 border-white/50 pointer-events-none"
+                transition={{ duration: 0.6 }}
+                className="absolute inset-0 rounded-3xl bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-purple-500/20 blur-2xl opacity-0 group-hover:opacity-100"
               />
             </motion.div>
           ))}
