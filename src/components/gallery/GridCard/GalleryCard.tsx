@@ -50,7 +50,6 @@ export default function GalleryCard({
       {/* User Info Overlay */}
       <UserOverlay
         userData={userData}
-        currentUserId={currentUserId}
       />
 
       <motion.div
