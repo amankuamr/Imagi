@@ -5,6 +5,7 @@ import { collection, query, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { TrendingUp, Image as ImageIcon } from "lucide-react";
+import NextImage from "next/image";
 
 interface GameTrend {
   gameId: string;
@@ -286,16 +287,12 @@ export default function TrendingGamesThisWeek() {
               <div className="relative aspect-square rounded-3xl overflow-hidden shadow-2xl border border-white/10 group">
                 {/* Full Card Background Image */}
                 {game.sampleImage ? (
-                  <img
+                  <NextImage
                     src={game.sampleImage}
                     alt={`${game.gameName} latest screenshot`}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
                     loading="lazy"
-                    onError={(e) => {
-                      console.warn(`Failed to load image for ${game.gameName}:`, game.sampleImage);
-                      // Hide the broken image
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
                   />
                 ) : (
                   /* Fallback gradient background when no image */

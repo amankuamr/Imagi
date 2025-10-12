@@ -5,6 +5,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { TrendingUp, Users, Image as ImageIcon } from "lucide-react";
+import NextImage from "next/image";
 
 interface GameWorld {
   gameId: string;
@@ -275,10 +276,11 @@ export default function ExploreGameWorlds() {
               <div className="relative aspect-square rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-xl">
                 {/* Background Image or Pattern */}
                 {game.sampleImage ? (
-                  <img
+                  <NextImage
                     src={game.sampleImage}
                     alt={`${game.gameName} screenshot`}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
                     loading="lazy"
                   />
                 ) : (

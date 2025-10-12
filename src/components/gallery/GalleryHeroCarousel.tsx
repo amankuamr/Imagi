@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import NextImage from "next/image";
 import {
   Carousel,
   CarouselContent,
@@ -51,11 +52,14 @@ export default function GalleryHeroCarousel() {
           {images.map((img) => (
             <CarouselItem key={img.id} className="h-full">
               <div className="relative w-full h-full flex items-center justify-center">
-                <img
-                  src={img.url}
-                  alt={img.title}
-                  className="w-[70vw] h-[80vh] object-cover rounded-3xl"
-                />
+                <div className="relative w-[70vw] h-[80vh] rounded-3xl overflow-hidden">
+                  <NextImage
+                    src={img.url}
+                    alt={img.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
 
                 <motion.div
                   className="absolute bottom-8 right-75 bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-lg"

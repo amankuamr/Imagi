@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Trophy, Award, Calendar, TrendingUp, Crown } from "lucide-react";
 import ImagePopup from "@/components/ImagePopup";
+import NextImage from "next/image";
 
 interface VotedImage {
   id: string;
@@ -232,10 +233,11 @@ export default function PreviousWeeklyVoted() {
                   className="relative cursor-pointer group mb-8"
                 >
                   <div className="relative aspect-[16/9] rounded-2xl overflow-hidden shadow-2xl border-2 border-yellow-400/50">
-                    <img
+                    <NextImage
                       src={weekData.winner.url}
                       alt={weekData.winner.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                       loading="lazy"
                     />
 
@@ -293,10 +295,11 @@ export default function PreviousWeeklyVoted() {
                           className="relative cursor-pointer group"
                         >
                           <div className="relative aspect-[4/3] rounded-xl overflow-hidden shadow-xl border border-white/10">
-                            <img
+                            <NextImage
                               src={runner.url}
                               alt={runner.title}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              fill
+                              className="object-cover transition-transform duration-300 group-hover:scale-105"
                               loading="lazy"
                             />
 

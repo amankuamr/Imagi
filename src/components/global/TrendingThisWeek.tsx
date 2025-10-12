@@ -5,6 +5,7 @@ import { collection, query, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { TrendingUp, Trophy, Award, Star, BarChart3, Calendar, Users } from "lucide-react";
+import NextImage from "next/image";
 
 interface TrendingGame {
   gameId: string;
@@ -361,11 +362,14 @@ export default function TrendingThisWeek() {
                     {/* Game Image/Icon */}
                     <div className="flex-shrink-0">
                       {game.sampleImage ? (
-                        <img
-                          src={game.sampleImage}
-                          alt={game.gameName}
-                          className="w-12 h-12 md:w-16 md:h-16 rounded-xl object-cover border border-white/20"
-                        />
+                        <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-xl overflow-hidden border border-white/20">
+                          <NextImage
+                            src={game.sampleImage}
+                            alt={game.gameName}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
                       ) : (
                         <div className={`w-12 h-12 md:w-16 md:h-16 rounded-xl bg-gradient-to-r ${game.color} flex items-center justify-center border border-white/20`}>
                           <span className="text-lg md:text-xl font-black text-white">

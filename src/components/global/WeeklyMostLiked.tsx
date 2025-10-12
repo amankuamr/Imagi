@@ -5,6 +5,7 @@ import { collection, query, getDocs, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Heart, Award, Users } from "lucide-react";
 import ImagePopup from "@/components/ImagePopup";
+import NextImage from "next/image";
 
 interface LikedImage {
   id: string;
@@ -223,10 +224,11 @@ export default function WeeklyMostLiked() {
               {/* Image Card */}
               <div className="relative aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl border border-white/10">
                 {/* Background Image */}
-                <img
+                <NextImage
                   src={image.url}
                   alt={image.title}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
                   loading="lazy"
                 />
 

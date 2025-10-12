@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import ImagePopup from "@/components/ImagePopup";
+import NextImage from "next/image";
 import type { User } from "firebase/auth";
 
 interface WeeklyImage {
@@ -216,10 +217,11 @@ export default function WeeklyVoting() {
                   whileHover={{ scale: 1.1 }}
                   transition={{ duration: 0.6 }}
                 >
-                  <img
+                  <NextImage
                     src={image.url}
                     alt={image.title}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
 
                   {/* Image Overlay Effects */}

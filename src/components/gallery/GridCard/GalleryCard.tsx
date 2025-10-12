@@ -2,6 +2,7 @@
 import { motion } from "framer-motion";
 import { Heart, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import NextImage from "next/image";
 import UserOverlay from "./UserOverlay";
 
 interface GalleryItem {
@@ -104,11 +105,12 @@ export default function GalleryCard({
         </div>
 
         {/* Image */}
-        <div className="aspect-square overflow-hidden">
-          <img
+        <div className="aspect-square overflow-hidden relative">
+          <NextImage
             src={item.image}
             alt={item.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
         </div>
 
