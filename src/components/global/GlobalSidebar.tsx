@@ -55,7 +55,7 @@ export default function GlobalSidebar({ activeView, onViewChange }: GlobalSideba
       initial={{ x: -300, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.6 }}
-      className="sticky top-20 ml-4 w-64 bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl z-20 h-[calc(100vh-6rem)]"
+      className="sticky top-20 ml-4 w-64 bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl z-20 h-[calc(100vh-8rem)]"
     >
       <div className="p-6 h-full flex flex-col">
         <nav className="flex-1 space-y-2 overflow-y-auto">

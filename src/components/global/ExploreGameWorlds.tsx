@@ -294,19 +294,6 @@ export default function ExploreGameWorlds() {
                 {/* Content Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent">
                   <div className="absolute bottom-0 left-0 right-0 p-4">
-                    {/* Game Icon */}
-                    <div className="flex items-center justify-center mb-3">
-                      <motion.div
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        transition={{ duration: 0.3 }}
-                        className={`w-12 h-12 rounded-xl bg-gradient-to-r ${game.color} flex items-center justify-center shadow-xl border-2 border-white/20`}
-                      >
-                        <span className="text-lg font-black text-white drop-shadow-lg">
-                          {game.icon}
-                        </span>
-                      </motion.div>
-                    </div>
-
                     {/* Game Name */}
                     <h3 className="text-white font-bold text-lg mb-2 truncate text-center drop-shadow-lg">
                       {game.gameName}
