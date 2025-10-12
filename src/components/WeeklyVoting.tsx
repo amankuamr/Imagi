@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { collection, getDocs, query, orderBy, limit, updateDoc, doc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import ImagePopup from "@/components/ImagePopup";
 import type { User } from "firebase/auth";
@@ -31,6 +32,7 @@ export default function WeeklyVoting() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const { user } = useAuth() as { user: User | null };
+  const router = useRouter();
 
   useEffect(() => {
     const fetchWeeklyImages = async () => {
@@ -445,7 +447,8 @@ export default function WeeklyVoting() {
           <motion.button
             whileHover={{ scale: 1.05, rotateX: 5 }}
             whileTap={{ scale: 0.95 }}
-            className="group relative px-10 py-5 bg-white/5 backdrop-blur-xl border border-white/20 text-white font-bold text-lg rounded-2xl hover:bg-white/10 hover:border-white/30 transition-all duration-500 shadow-2xl"
+            onClick={() => router.push('/global?view=liked')}
+            className="group relative px-10 py-5 bg-white/5 backdrop-blur-xl border border-white/20 text-white font-bold text-lg rounded-2xl hover:bg-white/10 hover:border-white/30 transition-all duration-500 shadow-2xl cursor-pointer"
           >
             <span className="flex items-center space-x-3">
               <span>View All Weekly Images</span>

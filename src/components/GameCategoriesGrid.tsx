@@ -394,7 +394,7 @@ export default function GameCategoriesGrid() {
               z: 20
             }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => router.push('/gallery')}
+            onClick={() => router.push('/global?view=explore')}
             className="group relative px-10 py-5 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 backdrop-blur-xl border border-white/20 text-white font-bold text-lg rounded-3xl hover:bg-gradient-to-r hover:from-cyan-500/20 hover:to-purple-500/20 hover:border-cyan-400/50 transition-all duration-500 shadow-2xl overflow-hidden"
             style={{ willChange: 'transform' }}
           >

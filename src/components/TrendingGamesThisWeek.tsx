@@ -1,10 +1,10 @@
 "use client";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { collection, query, getDocs, orderBy, limit } from "firebase/firestore";
+import { collection, query, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import { TrendingUp, Users, Image as ImageIcon } from "lucide-react";
+import { TrendingUp, Image as ImageIcon } from "lucide-react";
 
 interface GameTrend {
   gameId: string;
@@ -24,100 +24,47 @@ export default function TrendingGamesThisWeek() {
   useEffect(() => {
     const fetchTrendingGames = async () => {
       try {
-        const now = new Date();
+        // Get all images from the database
+        const imagesQuery = query(collection(db, "images"));
+        const imagesSnapshot = await getDocs(imagesQuery);
 
-        // Calculate current week boundaries (Sunday to Saturday)
-        const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - currentDay); // Go back to Sunday
-        startOfWeek.setHours(0, 0, 0, 0); // Start of Sunday
-
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6); // Saturday
-        endOfWeek.setHours(23, 59, 59, 999); // End of Saturday
-
-        // Get all images and filter client-side to avoid composite index requirements
-        const allImagesQuery = query(collection(db, "images"));
-        const allImagesSnapshot = await getDocs(allImagesQuery);
-
-        const allImages = allImagesSnapshot.docs.map(doc => ({
-          game: doc.data().game || 'Unknown',
-          uploadedAt: doc.data().uploadedAt?.toDate?.() || new Date()
-        }));
-
-        // Filter for current week (Sunday to Saturday)
-        const weeklyUploads = allImages.filter(img => {
-          const uploadDate = img.uploadedAt;
-          return uploadDate >= startOfWeek && uploadDate <= endOfWeek;
-        });
-
-        // Count uploads per game this week
+        // Count uploads per game
         const gameCounts: { [key: string]: number } = {};
-        weeklyUploads.forEach(upload => {
-          gameCounts[upload.game] = (gameCounts[upload.game] || 0) + 1;
+        imagesSnapshot.docs.forEach(doc => {
+          const game = doc.data().game || 'Unknown';
+          gameCounts[game] = (gameCounts[game] || 0) + 1;
         });
 
-        // Calculate trending games (current week only)
+        // Get latest image for each game
         const trendingDataPromises = Object.entries(gameCounts)
-          .map(async ([gameId, weeklyCount]) => {
+          .map(async ([gameId, uploadCount]) => {
+            let latestImage: string | undefined;
 
-                // Get a sample image for this game (simpler query to avoid index requirements)
-                let sampleImage: string | undefined;
-                try {
-                  // Get all images and filter client-side to avoid composite index requirements
-                  const imagesQuery = query(collection(db, "images"));
-                  const imagesSnapshot = await getDocs(imagesQuery);
-    
-                  // Find images for this game
-                  const gameImages = imagesSnapshot.docs
-                    .map(doc => {
-                      const data = doc.data();
-                      return {
-                        id: doc.id,
-                        game: data.game || 'Unknown',
-                        uploadedAt: data.uploadedAt,
-                        url: data.url
-                      };
-                    })
-                    .filter(img => img.game === gameId)
-                    .sort((a, b) => (b.uploadedAt?.toDate?.()?.getTime?.() || 0) - (a.uploadedAt?.toDate?.()?.getTime?.() || 0));
-    
-                  if (gameImages.length > 0) {
-                    sampleImage = gameImages[0].url;
-                  } else {
-                    // Try requests collection if no approved images
-                    const requestsQuery = query(collection(db, "requests"));
-                    const requestsSnapshot = await getDocs(requestsQuery);
-    
-                    const gameRequests = requestsSnapshot.docs
-                      .map(doc => {
-                        const data = doc.data();
-                        return {
-                          id: doc.id,
-                          game: data.game || 'Unknown',
-                          createdAt: data.createdAt,
-                          url: data.url
-                        };
-                      })
-                      .filter(req => req.game === gameId)
-                      .sort((a, b) => (b.createdAt?.toDate?.()?.getTime?.() || 0) - (a.createdAt?.toDate?.()?.getTime?.() || 0));
-    
-                    if (gameRequests.length > 0) {
-                      sampleImage = gameRequests[0].url;
-                    }
-                  }
-                } catch (error) {
-                  console.warn(`Error fetching sample image for ${gameId}:`, error);
-                }
+            try {
+              // Find the latest image for this game
+              const gameImages = imagesSnapshot.docs
+                .filter(doc => doc.data().game === gameId)
+                .sort((a, b) => {
+                  const aTime = a.data().uploadedAt?.toDate?.()?.getTime?.() || 0;
+                  const bTime = b.data().uploadedAt?.toDate?.()?.getTime?.() || 0;
+                  return bTime - aTime; // Most recent first
+                });
+
+              if (gameImages.length > 0) {
+                latestImage = gameImages[0].data().url;
+              }
+            } catch (error) {
+              console.warn(`Error fetching latest image for ${gameId}:`, error);
+            }
 
             return {
               gameId,
               gameName: getGameDisplayName(gameId),
-              uploadCount: weeklyCount,
-              growthPercent: 0, // No growth calculation for weekly view
+              uploadCount,
+              growthPercent: 0,
               color: getGameColor(gameId),
               icon: getGameIcon(gameId),
-              sampleImage
+              sampleImage: latestImage
             };
           });
 
@@ -125,37 +72,37 @@ export default function TrendingGamesThisWeek() {
         const filteredData = trendingData
           .filter(game => game.uploadCount > 0)
           .sort((a, b) => b.uploadCount - a.uploadCount)
-          .slice(0, 6); // Top 6 trending games
+          .slice(0, 6);
 
-        // If no real data, show mock data for demonstration
+        // If no data, show mock data
         if (filteredData.length === 0) {
           const mockData: GameTrend[] = [
             {
               gameId: 'valorant',
               gameName: 'Valorant',
-              uploadCount: 45,
-              growthPercent: 120,
+              uploadCount: 12,
+              growthPercent: 0,
               color: 'from-red-500 to-orange-500',
               icon: 'VL',
-              sampleImage: undefined
+              sampleImage: '/images/hero.jpg' // Use placeholder image
             },
             {
               gameId: 'fortnite',
               gameName: 'Fortnite',
-              uploadCount: 38,
-              growthPercent: 85,
+              uploadCount: 8,
+              growthPercent: 0,
               color: 'from-blue-500 to-purple-500',
               icon: 'FT',
-              sampleImage: undefined
+              sampleImage: '/images/community.jpg' // Use placeholder image
             },
             {
               gameId: 'apex-legends',
               gameName: 'Apex Legends',
-              uploadCount: 29,
-              growthPercent: 65,
+              uploadCount: 6,
+              growthPercent: 0,
               color: 'from-yellow-500 to-red-500',
               icon: 'AL',
-              sampleImage: undefined
+              sampleImage: '/images/comdet.jpg' // Use placeholder image
             }
           ];
           setTrendingGames(mockData);
@@ -164,7 +111,28 @@ export default function TrendingGamesThisWeek() {
         }
       } catch (error) {
         console.error('Error fetching trending games:', error);
-        setTrendingGames([]);
+        // Fallback to mock data on error
+        const mockData: GameTrend[] = [
+          {
+            gameId: 'valorant',
+            gameName: 'Valorant',
+            uploadCount: 12,
+            growthPercent: 0,
+            color: 'from-red-500 to-orange-500',
+            icon: 'VL',
+            sampleImage: '/images/hero.jpg'
+          },
+          {
+            gameId: 'fortnite',
+            gameName: 'Fortnite',
+            uploadCount: 8,
+            growthPercent: 0,
+            color: 'from-blue-500 to-purple-500',
+            icon: 'FT',
+            sampleImage: '/images/community.jpg'
+          }
+        ];
+        setTrendingGames(mockData);
       } finally {
         setLoading(false);
       }
@@ -299,7 +267,7 @@ export default function TrendingGamesThisWeek() {
         </motion.div>
 
         {/* Trending Games Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6">
           {trendingGames.map((game, index) => (
             <motion.div
               key={game.gameId}
@@ -314,69 +282,48 @@ export default function TrendingGamesThisWeek() {
               onClick={() => handleGameClick(game.gameId)}
               className="group relative cursor-pointer"
             >
-              {/* Game Card */}
-              <div className="relative aspect-square rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-xl border border-white/10">
-                {/* Background Image or Pattern */}
+              {/* Game Card - Full Image Preview */}
+              <div className="relative aspect-square rounded-3xl overflow-hidden shadow-2xl border border-white/10 group">
+                {/* Full Card Background Image */}
                 {game.sampleImage ? (
-                  <div className="absolute inset-0">
-                    <img
-                      src={game.sampleImage}
-                      alt={`${game.gameName} screenshot`}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={(e) => {
-                        console.warn(`Failed to load image for ${game.gameName}:`, game.sampleImage);
-                        // Hide the broken image and show fallback
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                    {/* Dark overlay for better text readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  </div>
-                ) : (
-                  <div
-                    className="absolute inset-0 opacity-20"
-                    style={{
-                      backgroundImage: `radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 2px, transparent 2px)`,
-                      backgroundSize: '30px 30px'
+                  <img
+                    src={game.sampleImage}
+                    alt={`${game.gameName} latest screenshot`}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    loading="lazy"
+                    onError={(e) => {
+                      console.warn(`Failed to load image for ${game.gameName}:`, game.sampleImage);
+                      // Hide the broken image
+                      (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
-                )}
-
-                {/* Game Icon Overlay (only shown when no image) */}
-                {!game.sampleImage && (
-                  <div className="absolute inset-0 flex items-center justify-center p-4">
-                    <motion.div
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      transition={{ duration: 0.3 }}
-                      className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${game.color} flex items-center justify-center shadow-xl border-4 border-white/20`}
-                    >
-                      <span className="text-2xl font-black text-white drop-shadow-lg">
-                        {game.icon}
-                      </span>
-                    </motion.div>
+                ) : (
+                  /* Fallback gradient background when no image */
+                  <div className={`w-full h-full bg-gradient-to-br ${game.color} flex items-center justify-center`}>
+                    <span className="text-4xl font-black text-white drop-shadow-lg">
+                      {game.icon}
+                    </span>
                   </div>
                 )}
 
-                {/* Clean Content Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent">
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    {/* Game Name */}
-                    <h3 className="text-white font-bold text-lg mb-2 truncate text-center drop-shadow-lg">
-                      {game.gameName}
-                    </h3>
+                {/* Dark overlay for text readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
-                    {/* Simple Stats */}
-                    <div className="flex items-center justify-center gap-4 text-sm">
-                      <div className="flex items-center gap-1 text-cyan-300 font-semibold">
-                        <ImageIcon className="w-4 h-4" />
-                        <span>{game.uploadCount}</span>
-                      </div>
+                {/* Content Overlay */}
+                <div className="absolute inset-0 flex flex-col justify-end p-4">
+                  {/* Game Name */}
+                  <h3 className="text-white font-bold text-lg mb-2 truncate drop-shadow-lg">
+                    {game.gameName}
+                  </h3>
 
+                  {/* Stats */}
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-1 text-cyan-300 font-semibold bg-black/50 px-2 py-1 rounded-full backdrop-blur-sm">
+                      <ImageIcon className="w-4 h-4" />
+                      <span>{game.uploadCount}</span>
                     </div>
                   </div>
                 </div>
-
 
                 {/* Trending Badge */}
                 {index < 3 && (
@@ -385,18 +332,18 @@ export default function TrendingGamesThisWeek() {
                     whileInView={{ scale: 1 }}
                     transition={{ duration: 0.5, delay: index * 0.2 }}
                     viewport={{ once: true }}
-                    className="absolute top-2 right-2 w-6 h-6 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg border border-white z-10"
+                    className="absolute top-3 right-3 w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white z-10"
                   >
-                    <span className="text-white font-bold text-xs">🔥</span>
+                    <span className="text-white font-bold text-sm">🔥</span>
                   </motion.div>
                 )}
 
-                {/* Subtle Shine Effect */}
+                {/* Hover overlay */}
                 <motion.div
-                  initial={{ x: '-150%', opacity: 0 }}
-                  whileHover={{ x: '150%', opacity: [0, 0.3, 0] }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 pointer-events-none"
+                  initial={{ opacity: 0 }}
+                  whileHover={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute inset-0 bg-black/20 pointer-events-none"
                 />
               </div>
             </motion.div>
@@ -414,7 +361,7 @@ export default function TrendingGamesThisWeek() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => router.push('/gallery?sort=trending')}
+            onClick={() => router.push('/global?view=trending')}
             className="group relative px-8 py-4 bg-gradient-to-r from-orange-500/20 to-red-500/20 backdrop-blur-xl border border-white/20 text-white font-semibold rounded-2xl hover:bg-gradient-to-r hover:from-orange-500/30 hover:to-red-500/30 hover:border-orange-400/50 transition-all duration-300 shadow-2xl"
           >
             <span className="flex items-center space-x-2 relative z-10">
