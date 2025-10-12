@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
 import { collection, getDocs, doc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -85,7 +86,7 @@ function HomeTab({ games }: { games: string[] }) {
             <div className="flex items-center space-x-4">
               <div className="w-16 h-16 bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden">
                 {gameLogos[game] ? (
-                  <img src={gameLogos[game]} alt={game} className="w-full h-full object-cover" />
+                  <Image src={gameLogos[game]} alt={game} width={64} height={64} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-2xl font-bold text-gray-400">
                     {game.charAt(0).toUpperCase()}
@@ -141,9 +142,34 @@ export default function AdminContent() {
     fetchConfig();
   }, []);
 
+  const filterImages = useCallback(() => {
+    let filtered = images;
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(img =>
+        (img.game || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (img.genre || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (img.uploadedBy || '').toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Game filter
+    if (gameFilter !== "all") {
+      filtered = filtered.filter(img => img.game === gameFilter);
+    }
+
+    // Genre filter
+    if (genreFilter !== "all") {
+      filtered = filtered.filter(img => img.genre === genreFilter);
+    }
+
+    setFilteredImages(filtered);
+  }, [images, searchQuery, gameFilter, genreFilter]);
+
   useEffect(() => {
     filterImages();
-  }, [images, searchQuery, gameFilter, genreFilter]);
+  }, [filterImages]);
 
   const fetchImages = async () => {
     try {
@@ -179,30 +205,6 @@ export default function AdminContent() {
     }
   };
 
-  const filterImages = () => {
-    let filtered = images;
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(img =>
-        (img.game || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (img.genre || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (img.uploadedBy || '').toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Game filter
-    if (gameFilter !== "all") {
-      filtered = filtered.filter(img => img.game === gameFilter);
-    }
-
-    // Genre filter
-    if (genreFilter !== "all") {
-      filtered = filtered.filter(img => img.genre === genreFilter);
-    }
-
-    setFilteredImages(filtered);
-  };
 
   const handleEdit = (image: ImageData) => {
     setEditingImage(image);
@@ -341,10 +343,11 @@ export default function AdminContent() {
       {showFullImage && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowFullImage(null)}>
           <div className="max-w-4xl max-h-[80vh] relative">
-            <img
+            <Image
               src={showFullImage}
               alt="Full size"
-              className="w-full h-auto max-h-[70vh] object-contain"
+              fill
+              className="object-contain"
             />
             <button
               onClick={() => setShowFullImage(null)}
@@ -409,10 +412,11 @@ export default function AdminContent() {
               <div key={image.id} className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
                 {/* Image */}
                 <div className="aspect-square relative">
-                  <img
+                  <Image
                     src={image.url}
                     alt={`${image.game} screenshot`}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                     loading="lazy"
                   />
                   <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">

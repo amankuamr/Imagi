@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { collection, query, getDocs, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Heart, TrendingUp, Award, ThumbsUp, Calendar, Users } from "lucide-react";
+import { Heart, Award, Users } from "lucide-react";
 import ImagePopup from "@/components/ImagePopup";
 
 interface LikedImage {

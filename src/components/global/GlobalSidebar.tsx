@@ -1,6 +1,5 @@
 "use client";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
 import { Map, TrendingUp, Heart, Trophy } from "lucide-react";
 
 type ViewType = "explore" | "trending" | "liked" | "voted";

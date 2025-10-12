@@ -1,5 +1,4 @@
 "use client";
-import { Button } from "@/components/ui/button";
 
 interface UserData {
   id: string;
@@ -9,10 +8,9 @@ interface UserData {
 
 interface UserOverlayProps {
   userData: UserData;
-  currentUserId?: string;
 }
 
-export default function UserOverlay({ userData, currentUserId }: UserOverlayProps) {
+export default function UserOverlay({ userData }: UserOverlayProps) {
   return (
     <div className="absolute -top-20 left-0 right-0 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-y-0 translate-y-1 pointer-events-none group-hover:pointer-events-auto">
       <div className="bg-gradient-to-r from-black/95 via-gray-900/95 to-black/95 backdrop-blur-xl border border-white/20 rounded-xl mx-2 px-4 py-3 shadow-2xl">

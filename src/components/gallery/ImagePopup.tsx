@@ -1,5 +1,6 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import NextImage from "next/image";
 import { X, Heart, ThumbsDown, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,13 +33,7 @@ export default function ImagePopup({ item, isOpen, onClose, onLike, onDislike, i
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedResolution, setSelectedResolution] = useState<typeof resolutions[0] | null>(null);
 
-  useEffect(() => {
-    if (selectedResolution && item) {
-      cropImage(selectedResolution);
-    }
-  }, [selectedResolution, item]);
-
-  const cropImage = (resolution: typeof resolutions[0]) => {
+  const cropImage = useCallback((resolution: typeof resolutions[0]) => {
     const canvas = canvasRef.current;
     if (!canvas || !item) return;
 
@@ -76,7 +71,13 @@ export default function ImagePopup({ item, isOpen, onClose, onLike, onDislike, i
       );
     };
     img.src = item.image;
-  };
+  }, [item]);
+
+  useEffect(() => {
+    if (selectedResolution && item) {
+      cropImage(selectedResolution);
+    }
+  }, [selectedResolution, item, cropImage]);
 
   const downloadImage = () => {
     const canvas = canvasRef.current;
@@ -144,11 +145,12 @@ export default function ImagePopup({ item, isOpen, onClose, onLike, onDislike, i
             {/* Scrollable content */}
             <div className="max-h-[85vh] overflow-y-auto pt-16">
               {/* Image */}
-              <div className="p-6">
-                <img
+              <div className="p-6 relative">
+                <NextImage
                   src={item.image}
                   alt={item.name}
-                  className="w-full h-auto max-h-[40vh] object-contain rounded-lg"
+                  fill
+                  className="object-contain rounded-lg"
                 />
               </div>
 

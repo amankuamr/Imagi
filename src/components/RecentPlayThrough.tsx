@@ -31,7 +31,6 @@ export default function RecentPlayThrough() {
   const [images, setImages] = useState<ImageData[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchImages = async () => {
@@ -122,8 +121,6 @@ export default function RecentPlayThrough() {
                 setSelectedImage(image);
                 setIsPopupOpen(true);
               }}
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex(null)}
 
               className="group relative aspect-[4/5] rounded-3xl overflow-hidden cursor-pointer"
             >

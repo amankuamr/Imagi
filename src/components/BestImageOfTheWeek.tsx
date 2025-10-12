@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { collection, getDocs, query, orderBy, limit, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ImagePopup from "@/components/ImagePopup";
@@ -157,15 +158,13 @@ export default function BestImageOfTheWeek() {
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="w-full h-full"
+                    className="w-full h-full relative"
                   >
-                    <img
+                    <Image
                       src={image.url}
                       alt={image.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = '/placeholder-image.jpg';
-                      }}
+                      fill
+                      className="object-cover"
                     />
                   </motion.div>
 

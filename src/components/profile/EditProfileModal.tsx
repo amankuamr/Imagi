@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { User } from "firebase/auth";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Save, User as UserIcon, Upload, ImageIcon } from "lucide-react";
+import { X, Save, Upload } from "lucide-react";
 import { compressImage, validateImageFile, formatFileSize } from "@/lib/imageCompression";
 
 interface EditForm {

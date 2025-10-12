@@ -26,7 +26,7 @@ type UpdateData = Record<string, unknown>;
 
 export default function WeeklyVoting() {
   const [images, setImages] = useState<WeeklyImage[]>([]);
-  const [selectedImage, setSelectedImage] = useState<WeeklyImage | null>(null);
+  const [selectedImage] = useState<WeeklyImage | null>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [votingStates, setVotingStates] = useState<{ [key: string]: boolean }>({});
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);

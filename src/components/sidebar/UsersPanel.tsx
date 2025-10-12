@@ -2,11 +2,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 
 interface FirebaseUser {
@@ -25,7 +23,6 @@ export default function UsersPanel({ isOpen, onClose }: UsersPanelProps) {
   const [users, setUsers] = useState<FirebaseUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const { user: currentUser } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
