@@ -15,9 +15,28 @@ interface RequestData {
   genre?: string;
   game?: string;
   url?: string;
-  public_id?: string;
+  path?: string; // GitHub path
+  public_id?: string; // Cloudinary ID
+  storageProvider?: string; // 'github' or 'cloudinary'
   status: 'pending' | 'approved' | 'rejected';
   createdAt: Date;
+}
+
+interface ImageData {
+  title?: string;
+  genre?: string;
+  game?: string;
+  url?: string;
+  path?: string;
+  public_id?: string;
+  storageProvider?: string;
+  uploadedAt: Date;
+  userId: string;
+  uploadedBy: string;
+  likes: number;
+  dislikes: number;
+  likedBy: string[];
+  dislikedBy: string[];
 }
 
 export default function AdminRequests() {
@@ -51,12 +70,11 @@ export default function AdminRequests() {
 
       if (status === 'approved' && request.type === 'image_upload') {
         // Move approved image to images collection
-        await addDoc(collection(db, 'images'), {
+        const imageData: ImageData = {
           title: request.title,
           genre: request.genre,
           game: request.game,
           url: request.url,
-          public_id: request.public_id,
           uploadedAt: request.createdAt,
           userId: request.userId,
           uploadedBy: request.userEmail, // Store uploader's email
@@ -64,7 +82,16 @@ export default function AdminRequests() {
           dislikes: 0,
           likedBy: [],
           dislikedBy: [],
-        });
+        };
+
+        // Add GitHub-specific fields if available
+        if (request.path) imageData.path = request.path;
+        if (request.storageProvider) imageData.storageProvider = request.storageProvider;
+
+        // Only add public_id if it exists (for Cloudinary images)
+        if (request.public_id) imageData.public_id = request.public_id;
+
+        await addDoc(collection(db, 'images'), imageData);
         // Delete from requests
         await deleteDoc(doc(db, 'requests', id));
         setRequests(prev => prev.filter(req => req.id !== id));
@@ -133,6 +160,9 @@ export default function AdminRequests() {
                     <p className="text-gray-300"><strong>Title:</strong> {request.title}</p>
                     <p className="text-gray-300"><strong>Genre:</strong> {request.genre}</p>
                     <p className="text-gray-300"><strong>Game:</strong> {request.game}</p>
+                    {request.storageProvider && (
+                      <p className="text-gray-300"><strong>Storage:</strong> {request.storageProvider}</p>
+                    )}
                   </div>
                 </div>
               ) : (

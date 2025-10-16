@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       originalSize: file.size,
       optimizedSize: result.size,
       compressed: result.compressed,
-      status: 'completed',
+      status: 'pending', // Changed from 'completed' to 'pending' for admin approval
       createdAt: new Date(),
     });
 

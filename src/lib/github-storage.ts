@@ -93,18 +93,6 @@ class GitHubStorage {
       const contentData = fileData as GitHubContentResponse;
       const downloadUrl = contentData.download_url;
 
-      // Store metadata in Firestore
-      await this.storeMetadata({
-        url: downloadUrl,
-        path: filePath,
-        title: name || file.name, // Use provided name or filename as fallback
-        userId,
-        game: gameName,
-        genre: genre,
-        originalSize: file.size,
-        optimizedSize: optimizedBuffer.length,
-        uploadedAt: new Date(),
-      });
 
 
       // Add delay to respect rate limits
