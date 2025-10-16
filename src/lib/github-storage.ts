@@ -75,7 +75,7 @@ class GitHubStorage {
       const filePath = `images/${fileName}`;
 
       // Upload to GitHub
-      const { data } = await this.octokit.repos.createOrUpdateFileContents({
+      await this.octokit.repos.createOrUpdateFileContents({
         owner: this.config.repoOwner,
         repo: this.config.repoName,
         path: filePath,
@@ -106,14 +106,6 @@ class GitHubStorage {
         uploadedAt: new Date(),
       });
 
-      console.log('Stored metadata:', {
-        url: downloadUrl,
-        path: filePath,
-        title: name || file.name,
-        userId,
-        game: gameName,
-        genre: genre,
-      });
 
       // Add delay to respect rate limits
       await this.delay(this.rateLimitDelay);
@@ -124,9 +116,8 @@ class GitHubStorage {
         size: optimizedBuffer.length,
         compressed: optimizedBuffer.length < file.size,
       };
-    } catch (error) {
-      console.error('GitHub upload error:', error);
-      throw new Error(`Failed to upload image: ${error}`);
+    } catch {
+      throw new Error('Failed to upload image');
     }
   }
 
@@ -147,7 +138,6 @@ class GitHubStorage {
 
       await this.delay(this.rateLimitDelay);
     } catch (error) {
-      console.error('GitHub delete error:', error);
       throw new Error(`Failed to delete image: ${error}`);
     }
   }
@@ -171,47 +161,82 @@ class GitHubStorage {
         fileCount,
         remainingStorage: (100 * 1024 * 1024 * 1024) - (data.size * 1024), // 100GB limit
       };
-    } catch (error) {
-      console.error('Error getting repo info:', error);
-      throw error;
+    } catch {
+      throw new Error('Failed to get repository info');
     }
   }
 
   private async optimizeImage(file: File): Promise<Buffer> {
     const buffer = Buffer.from(await file.arrayBuffer());
+    const originalSize = buffer.length;
 
     // Get image metadata
     const metadata = await sharp(buffer).metadata();
 
-    // Optimize based on image type and size
     let optimized = sharp(buffer);
+    let quality = 95; // Start with high quality
 
-    // Resize if too large (max 1920px width)
+    // Smart compression based on original size
+    if (originalSize > 5 * 1024 * 1024) { // > 5MB
+      quality = 85;
+    } else if (originalSize > 2 * 1024 * 1024) { // > 2MB
+      quality = 90;
+    } else {
+      quality = 95;
+    }
+
+    // Resize if too large (max 1920px width, maintain aspect ratio)
     if (metadata.width && metadata.width > 1920) {
-      optimized = optimized.resize(1920, null, {
+      const aspectRatio = metadata.height! / metadata.width!;
+      const newHeight = Math.round(1920 * aspectRatio);
+
+      optimized = optimized.resize(1920, newHeight, {
         fit: 'inside',
         withoutEnlargement: true,
+        kernel: sharp.kernel.lanczos3, // High quality resizing
       });
+      // Image resized for optimization
     }
 
-    // Compress based on format
-    if (metadata.format === 'jpeg') {
+    // Compress based on format with quality preservation
+    if (metadata.format === 'jpeg' || metadata.format === 'jpg') {
       optimized = optimized.jpeg({
-        quality: 85,
+        quality: quality,
         progressive: true,
+        mozjpeg: true, // Better compression
+        chromaSubsampling: '4:4:4', // Preserve color quality
       });
     } else if (metadata.format === 'png') {
-      optimized = optimized.png({
-        compressionLevel: 8,
-        quality: 85,
-      });
+      // Convert large PNGs to JPEG for better compression
+      if (originalSize > 1 * 1024 * 1024) { // > 1MB PNG
+        optimized = optimized.jpeg({
+          quality: quality,
+          progressive: true,
+        });
+      } else {
+        optimized = optimized.png({
+          compressionLevel: 6, // Balanced compression
+          quality: quality,
+          palette: true, // Use palette if possible
+        });
+      }
     } else if (metadata.format === 'webp') {
       optimized = optimized.webp({
-        quality: 85,
+        quality: quality,
+        effort: 6, // Higher effort for better compression
+      });
+    } else {
+      // Convert other formats to JPEG
+      optimized = optimized.jpeg({
+        quality: quality,
+        progressive: true,
       });
     }
 
-    return optimized.toBuffer();
+    const optimizedBuffer = await optimized.toBuffer();
+
+
+    return optimizedBuffer;
   }
 
   private generateFileName(originalName: string, userId: string, gameName: string): string {
@@ -227,8 +252,7 @@ class GitHubStorage {
         ...metadata,
         storageProvider: 'github',
       });
-    } catch (error) {
-      console.error('Error storing metadata:', error);
+    } catch {
       // Don't throw - metadata storage failure shouldn't fail upload
     }
   }
@@ -242,7 +266,7 @@ class GitHubStorage {
       });
       const fileData = data as GitHubFileResponse;
       return fileData.sha;
-    } catch (error) {
+    } catch {
       throw new Error(`File not found: ${filePath}`);
     }
   }
@@ -275,11 +299,10 @@ class GitHubStorage {
         const resetTime = new Date(data.rate.reset * 1000);
         const waitTime = resetTime.getTime() - Date.now();
         if (waitTime > 0) {
-          console.log(`Rate limit low. Waiting ${Math.ceil(waitTime / 1000)} seconds...`);
           await this.delay(waitTime);
         }
       }
-    } catch (error) {
+    } catch {
       // If we can't check rate limit, just add a small delay
       await this.delay(500);
     }

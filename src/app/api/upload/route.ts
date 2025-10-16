@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { UploadApiResponse } from 'cloudinary';
-import cloudinary from '@/lib/cloudinary';
+import GitHubStorage from '@/lib/github-storage';
 import { db } from '@/lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
@@ -18,22 +17,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Convert file to buffer
-    const buffer = await file.arrayBuffer();
-    
-    // Upload to Cloudinary
-    const result = await new Promise<UploadApiResponse>((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        { folder: 'imagi' },
-        (error, result) => {
-          if (error) reject(error);
-          else if (result) resolve(result);
-          else reject(new Error('Upload failed'));
-        }
-      ).end(Buffer.from(buffer));
-    });
+    // Initialize GitHub storage
+    const githubStorage = new GitHubStorage();
 
-   
+    // Upload to GitHub LFS
+    const result = await githubStorage.uploadImage(file, userId, game, genre);
+
     // Save request to Firestore
     await addDoc(collection(db, 'requests'), {
       userId: userId,
@@ -42,15 +31,15 @@ export async function POST(request: NextRequest) {
       title: name,
       genre: genre,
       game: game,
-      url: result.secure_url,
-      public_id: result.public_id,
+      url: result.url,
+      path: result.path,
+      storageProvider: 'github',
       status: 'pending',
       createdAt: new Date(),
     });
 
-    return NextResponse.json({ message: 'Uploaded successfully', url: result.secure_url });
+    return NextResponse.json({ message: 'Uploaded successfully', url: result.url });
   } catch (error) {
-    console.error('Upload error:', error);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }

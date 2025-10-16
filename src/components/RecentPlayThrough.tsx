@@ -36,37 +36,23 @@ export default function RecentPlayThrough() {
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        console.log('Fetching images...');
         const q = query(collection(db, "images"), orderBy("uploadedAt", "desc"), limit(3));
         const querySnapshot = await getDocs(q);
-        console.log('Query snapshot:', querySnapshot.docs.length, 'documents');
-
-        // Debug: Log all documents
-        querySnapshot.docs.forEach((doc, index) => {
-          console.log(`Document ${index}:`, doc.id, doc.data());
-        });
 
         const imagesData = await Promise.all(
           querySnapshot.docs.map(async (docSnap) => {
             const data = docSnap.data();
-            console.log('Image data:', data);
             let username = 'Unknown User';
 
             if (data.userId) {
               try {
-                console.log('Fetching user for userId:', data.userId);
                 const userDoc = await getDoc(doc(db, 'users', data.userId));
                 if (userDoc.exists()) {
                   username = userDoc.data().username || 'Unknown User';
-                  console.log('Found username:', username);
-                } else {
-                  console.log('User document not found for userId:', data.userId);
                 }
               } catch (error) {
-                console.error('Error fetching user:', error);
+                // Handle error silently
               }
-            } else {
-              console.log('No userId in image data');
             }
 
             return {
@@ -82,10 +68,9 @@ export default function RecentPlayThrough() {
           })
         );
 
-        console.log('Final images data:', imagesData);
         setImages(imagesData);
       } catch (error) {
-        console.error('Error fetching images:', error);
+        // Handle error silently
       }
     };
     fetchImages();

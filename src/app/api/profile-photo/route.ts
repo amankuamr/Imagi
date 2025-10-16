@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { UploadApiResponse } from 'cloudinary';
-import cloudinary from '@/lib/cloudinary';
+import GitHubStorage from '@/lib/github-storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,37 +23,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File too large. Maximum size is 10MB.' }, { status: 400 });
     }
 
-    // Convert file to buffer
-    const buffer = await file.arrayBuffer();
+    // Initialize GitHub storage
+    const githubStorage = new GitHubStorage();
 
-    // Upload to Cloudinary with optimization
-    const result = await new Promise<UploadApiResponse>((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          folder: 'imagi/profile-photos',
-          public_id: `user-${userId}-${Date.now()}`,
-          transformation: [
-            { width: 400, height: 400, crop: 'fill', gravity: 'face' }, // Crop to face if possible
-            { quality: 'auto', fetch_format: 'auto' } // Auto optimize quality and format
-          ],
-          resource_type: 'image'
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else if (result) resolve(result);
-          else reject(new Error('Upload failed'));
-        }
-      ).end(Buffer.from(buffer));
-    });
+    // Upload to GitHub LFS (profile-photos folder)
+    const result = await githubStorage.uploadImage(file, userId, 'profile-photos', 'avatar');
 
     return NextResponse.json({
       message: 'Profile photo uploaded successfully',
-      url: result.secure_url,
-      public_id: result.public_id
+      url: result.url,
+      path: result.path
     });
 
   } catch (error) {
-    console.error('Profile photo upload error:', error);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }
