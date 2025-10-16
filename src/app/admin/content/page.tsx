@@ -13,7 +13,8 @@ interface ImageData {
   game: string;
   genre: string;
   uploadedAt: Date;
-  uploadedBy: string;
+  uploadedBy?: string; // Make optional
+  userId?: string; // Add userId for fetching username
   likes: number;
   dislikes: number;
   likedBy: string[];
@@ -174,11 +175,38 @@ export default function AdminContent() {
   const fetchImages = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "images"));
-      const imagesData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        uploadedAt: doc.data().uploadedAt?.toDate?.() || new Date()
-      })) as ImageData[];
+      const imagesData = await Promise.all(
+        querySnapshot.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+
+          // Fetch username if we have userId but no uploadedBy
+          let uploadedBy = data.uploadedBy;
+          if (!uploadedBy && data.userId) {
+            try {
+              const userDoc = await getDoc(doc(db, 'users', data.userId));
+              if (userDoc.exists()) {
+                uploadedBy = userDoc.data().username || userDoc.data().email || 'Unknown User';
+              }
+            } catch (error) {
+              console.error('Error fetching user for image:', docSnap.id, error);
+            }
+          }
+
+          return {
+            id: docSnap.id,
+            url: data.url || '',
+            game: data.game || 'Unknown',
+            genre: data.genre || 'Unknown',
+            uploadedAt: data.uploadedAt?.toDate?.() || new Date(),
+            uploadedBy: uploadedBy || 'Unknown User',
+            userId: data.userId || '',
+            likes: data.likes || 0,
+            dislikes: data.dislikes || 0,
+            likedBy: data.likedBy || [],
+            dislikedBy: data.dislikedBy || [],
+          } as ImageData;
+        })
+      );
 
       // Sort by newest first
       imagesData.sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
@@ -239,12 +267,45 @@ export default function AdminContent() {
     if (!confirm("Are you sure you want to delete this image?")) return;
 
     try {
+      // Get image data first to know which service it uses
+      const imageDoc = await getDoc(doc(db, "images", imageId));
+      if (!imageDoc.exists()) {
+        alert("Image not found");
+        return;
+      }
+
+      const imageData = imageDoc.data();
+      const path = imageData.path || imageData.public_id;
+
+      if (!path) {
+        alert("Cannot determine storage location for this image");
+        return;
+      }
+
+      // Delete from storage service
+      const deleteRes = await fetch('/api/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path: imageData.path,
+          public_id: imageData.public_id,
+          doc_id: imageId
+        }),
+      });
+
+      if (!deleteRes.ok) {
+        const errorData = await deleteRes.json();
+        alert(`Storage deletion failed: ${errorData.details || errorData.error}`);
+        return;
+      }
+
+      // Delete from Firestore
       await deleteDoc(doc(db, "images", imageId));
 
       // Update local state
       setImages(images.filter(img => img.id !== imageId));
 
-      alert("Image deleted successfully");
+      alert("Image deleted successfully from storage and database");
     } catch (error) {
       console.error('Error deleting image:', error);
       alert("Failed to delete image");

@@ -68,7 +68,20 @@ export default function GalleryGridSection() {
         id: doc.id,
         ...doc.data()
       })) as FirebaseImage[];
-      setImages(imgs);
+
+      // Filter out incomplete entries and duplicates
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const filteredImages = imgs.filter((img: any) => {
+        // Must have URL to be valid
+        if (!img.url) return false;
+
+        // Must have at least a title or be a valid upload
+        if (!img.title && !img.name) return false;
+
+        return true;
+      });
+
+      setImages(filteredImages);
     } catch (error) {
       console.error('Error fetching images:', error);
     } finally {
@@ -201,13 +214,14 @@ export default function GalleryGridSection() {
     setVisibleCount(prev => prev + 16);
   };
 
-  const visibleItems = filteredImages.slice(0, visibleCount).map((img, index) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const visibleItems = filteredImages.slice(0, visibleCount).map((img: any, index: number) => ({
     id: img.id,
-    name: img.title || `Screenshot ${index + 1}`,
+    name: img.title || img.name || `Screenshot ${index + 1}`,
     image: img.url || '',
     votes: img.likes || 0,
-    genre: img.genre || 'Unknown',
-    game: img.game || 'Unknown',
+    genre: img.genre || 'General',
+    game: img.game || 'Various',
     userId: img.userId,
   }));
 

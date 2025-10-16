@@ -10,7 +10,8 @@ interface ImageData {
   id: string;
   title: string;
   url: string;
-  public_id: string;
+  path?: string; // GitHub path
+  public_id?: string; // Cloudinary ID
   uploadedAt: Date;
   userId: string;
   username: string;
@@ -40,6 +41,11 @@ export default function RecentPlayThrough() {
         const querySnapshot = await getDocs(q);
         console.log('Query snapshot:', querySnapshot.docs.length, 'documents');
 
+        // Debug: Log all documents
+        querySnapshot.docs.forEach((doc, index) => {
+          console.log(`Document ${index}:`, doc.id, doc.data());
+        });
+
         const imagesData = await Promise.all(
           querySnapshot.docs.map(async (docSnap) => {
             const data = docSnap.data();
@@ -67,6 +73,7 @@ export default function RecentPlayThrough() {
               id: docSnap.id,
               title: data.title || '',
               url: data.url || '',
+              path: data.path || '',
               public_id: data.public_id || '',
               uploadedAt: data.uploadedAt.toDate(),
               userId: data.userId || '',

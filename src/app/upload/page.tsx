@@ -50,7 +50,7 @@ export default function UploadPage() {
     formData.append('userEmail', user.email || '');
 
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetch('/api/github-upload', {
         method: 'POST',
         body: formData,
       });

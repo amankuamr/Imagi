@@ -11,8 +11,11 @@ interface ImageData {
   genre?: string;
   game?: string;
   url?: string;
-  public_id?: string;
+  path?: string; // GitHub file path
+  public_id?: string; // Legacy Cloudinary support
   uploadedAt?: Timestamp;
+  uploadedBy?: string; // Uploader email/name
+  userId?: string; // Uploader user ID
 }
 
 interface ConfigData {
@@ -28,6 +31,7 @@ export default function AdminPage() {
   const [uploadGenre, setUploadGenre] = useState('');
   const [uploadGame, setUploadGame] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadService, setUploadService] = useState<'github' | 'cloudinary'>('github');
   const [editing, setEditing] = useState<ImageData | null>(null);
   const [editName, setEditName] = useState('');
   const [editGenre, setEditGenre] = useState('');
@@ -48,7 +52,22 @@ export default function AdminPage() {
         id: doc.id,
         ...doc.data()
       }));
-      setImages(imgs);
+
+      // Filter out entries without required data and remove obvious duplicates
+      const seenIds = new Set();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const uniqueImages = imgs.filter((img: any) => {
+        // Skip entries without URLs or titles
+        if (!img.url || !img.title) return false;
+
+        // Remove duplicates by ID
+        if (seenIds.has(img.id)) return false;
+        seenIds.add(img.id);
+
+        return true;
+      });
+
+      setImages(uniqueImages);
     } catch (error) {
       console.error('Error fetching images:', error);
     } finally {
@@ -77,7 +96,6 @@ export default function AdminPage() {
     setUploading(true);
 
     try {
-      // Upload directly to Cloudinary and save to images collection
       const formData = new FormData();
       formData.append('image', uploadFile);
       formData.append('name', uploadName);
@@ -85,14 +103,18 @@ export default function AdminPage() {
       formData.append('game', uploadGame);
       formData.append('userId', user.uid);
       formData.append('userEmail', user.email || '');
+      formData.append('service', uploadService); // Add service selection
 
-      const res = await fetch('/api/admin-upload', {
+      // Choose API endpoint based on service
+      const apiEndpoint = uploadService === 'github' ? '/api/github-upload' : '/api/admin-upload';
+
+      const res = await fetch(apiEndpoint, {
         method: 'POST',
         body: formData,
       });
 
       if (res.ok) {
-        alert('Image uploaded successfully!');
+        alert(`Image uploaded successfully to ${uploadService === 'github' ? 'GitHub' : 'Cloudinary'}!`);
         setUploadName('');
         setUploadGenre('');
         setUploadGame('');
@@ -135,23 +157,30 @@ export default function AdminPage() {
     }
   };
 
-  const handleDelete = async (public_id: string, doc_id: string) => {
-    if (!confirm('Are you sure you want to delete this image?')) return;
+  const handleDelete = async (path: string, doc_id: string) => {
+    console.log('Admin panel delete called with:', { path, doc_id });
+
+    if (!confirm('Are you sure you want to delete this image? This will remove it from both the gallery and GitHub repository.')) return;
 
     try {
+      console.log('Sending delete request to API...');
       const res = await fetch('/api/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ public_id, doc_id }),
+        body: JSON.stringify({ path, doc_id }),
       });
 
+      console.log('Delete API response status:', res.status);
+
       if (res.ok) {
-        alert('Image deleted successfully!');
+        alert('Image deleted successfully from GitHub and gallery!');
         fetchImages(); // Refresh list
       } else {
-        alert('Delete failed');
+        const errorData = await res.json();
+        alert(`Delete failed: ${errorData.details || errorData.error || 'Unknown error'}`);
       }
-    } catch {
+    } catch (error) {
+      console.error('Delete error:', error);
       alert('Error deleting image');
     }
   };
@@ -202,6 +231,18 @@ export default function AdminPage() {
                 {games.map((game) => (
                   <option key={game} value={game}>{game}</option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Upload Service</label>
+              <select
+                value={uploadService}
+                onChange={(e) => setUploadService(e.target.value as 'github' | 'cloudinary')}
+                className="w-full px-3 py-2 border border-gray-600 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="github">GitHub LFS (Free - 100GB)</option>
+                <option value="cloudinary">Cloudinary (Paid)</option>
               </select>
             </div>
             <div>
@@ -300,6 +341,7 @@ export default function AdminPage() {
                 {img.title && <h3 className="text-lg font-semibold text-white mb-2">{img.title}</h3>}
                 {img.genre && <p className="text-sm text-blue-400 mb-1">Genre: {img.genre}</p>}
                 {img.game && <p className="text-sm text-purple-400 mb-1">Game: {img.game}</p>}
+                {img.uploadedBy && <p className="text-sm text-green-400 mb-1">Uploader: {img.uploadedBy}</p>}
                 {img.uploadedAt && <p className="text-sm text-gray-400 mb-4">
                   Uploaded: {img.uploadedAt?.toDate?.()?.toLocaleDateString() || 'N/A'}
                 </p>}
@@ -310,9 +352,9 @@ export default function AdminPage() {
                   >
                     Edit
                   </button>
-                  {img.public_id && (
+                  {(img.path || img.public_id) && (
                     <button
-                      onClick={() => handleDelete(img.public_id!, img.id)}
+                      onClick={() => handleDelete(img.path || img.public_id!, img.id)}
                       className="flex-1 bg-red-600 text-white py-2 px-3 rounded-md hover:bg-red-700 transition-colors text-sm"
                     >
                       Delete
